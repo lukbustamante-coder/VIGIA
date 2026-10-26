@@ -1,0 +1,24 @@
+import uuid
+
+from django.conf import settings
+from django.db import models
+
+
+class Submission(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    kind = models.CharField(max_length=8, choices=[("eml", "Correo EML"), ("file", "Archivo")])
+    filename = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True)
+    finished_at = models.DateTimeField(null=True)
+    status = models.CharField(max_length=12, default="queued")
+    verdict = models.CharField(max_length=24, default="pending")
+    details = models.JSONField(default=dict)
+
+
+class AuditEvent(models.Model):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=40)
+    submission_id = models.UUIDField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)

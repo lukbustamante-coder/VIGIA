@@ -1,0 +1,4 @@
+{% extends 'analysis/base.html' %}{% block content %}
+<section class="hero"><p class="eyebrow">VISIBILIDAD ANTE LAS AMENAZAS</p><h1>Antes de abrirlo,<br>analízalo.</h1><p class="intro">Revisa correos y archivos sospechosos en un solo lugar. Recibe un veredicto claro y deja la investigación a tu equipo de seguridad.</p><a class="button" href="{% url 'login' %}">Ingresar con SSO →</a></section>
+<section class="grid"><article class="card"><span class="icon">✉</span><h2>Correos electrónicos</h2><p>Inspección de mensajes, enlaces y adjuntos. Solo archivos EML.</p><span class="tag">.EML</span></article><article class="card"><span class="icon">▤</span><h2>Archivos y documentos</h2><p>Análisis estático de documentos, comprimidos, texto e imágenes comunes.</p><span class="tag">PDF · ZIP · OFFICE · MÁS</span></article></section>
+{% endblock %}

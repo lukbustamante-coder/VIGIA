@@ -1,0 +1,25 @@
+[project]
+name = "vigia"
+version = "0.1.0"
+description = "Análisis defensivo de correos y archivos con acceso mediante Keycloak"
+requires-python = ">=3.12"
+dependencies = [
+  "Django>=5.2.10,<5.3",
+  "Authlib>=1.6.6,<2",
+  "requests>=2.32.5,<3",
+  "defusedxml>=0.7.1,<1",
+  "olefile>=0.47,<1",
+  "gunicorn>=23,<26",
+  "whitenoise>=6.11,<7",
+  "psycopg[binary]>=3.2,<4",
+]
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-django>=4.11,<5", "ruff>=0.14,<1"]
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "vigia.settings"
+python_files = ["test_*.py"]
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
