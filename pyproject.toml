@@ -9,6 +9,7 @@ dependencies = [
   "requests>=2.32.5,<3",
   "defusedxml>=0.7.1,<1",
   "olefile>=0.47,<1",
+  "pypdf>=6.21.2,<7",
   "gunicorn>=23,<26",
   "whitenoise>=6.11,<7",
   "psycopg[binary]>=3.2,<4",

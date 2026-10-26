@@ -60,7 +60,24 @@ Hash SHA-256, firma antivirus **de prueba EICAR**, coherencia de formatos, macro
 
 Los ZIP se inspeccionan en memoria sin extraer a disco: máximo 100 entradas globales, 20 MB expandidos, relación de compresión 100:1 y profundidad máxima 2. Se detectan rutas peligrosas y archivos cifrados. Las cargas se limitan a 20 MB durante la recepción; se valida extensión y estructura/firma, sin confiar en el Content-Type del cliente.
 
-Veredictos: **Malicioso**, **Sospechoso**, **Sin indicios detectados** y **No concluyente**. `Sin indicios` no significa seguro. Un PDF no se desofusca ni se interpreta por completo; las imágenes no se decodifican. No hay sandbox de detonación, ClamAV, YARA, validación criptográfica SPF/DKIM/DMARC ni garantía contra malware desconocido. Los `Authentication-Results` de un EML subido no se consideran confiables. Los IOC se obtienen por análisis estático acotado, no por extracción forense exhaustiva.
+Veredictos: **Malicioso**, **Sospechoso**, **Sin indicios detectados** y **No concluyente**. `Sin indicios` no significa seguro. Los PDF se inspeccionan estructuralmente con pypdf: se resuelven objetos referenciados y streams comprimidos, se buscan acciones activas y se aplican límites de objetos, profundidad y descompresión. No se ejecutan acciones, renderizan páginas ni decodifican imágenes. PDF cifrados, estructuras inválidas y límites alcanzados conservan cobertura incompleta. No hay sandbox de detonación, ClamAV, YARA, validación criptográfica SPF/DKIM/DMARC ni garantía contra malware desconocido. Los `Authentication-Results` de un EML subido no se consideran confiables. Los IOC se obtienen por análisis estático acotado, no por extracción forense exhaustiva.
+
+## Diagnosticar «No concluyente»
+
+«Completado» significa que terminó el proceso; no garantiza que se dispusiera de toda la evidencia. Un PDF/DOCX válido puede quedar no concluyente si VirusTotal desconoce el hash, el worker no cargó la clave, se agotó la cuota o falló la consulta. La cobertura local y la reputación se registran por separado en nuevos análisis. Las razones solo se presentan a administradores; los usuarios mantienen el veredicto.
+
+En una terminal de operación con las variables cargadas, ejecuta `uv run python manage.py diagnose_analysis --limit 5` o `uv run python manage.py diagnose_analysis UUID_DEL_ANALISIS`. No imprime claves, nombres de archivos ni IOC. Funciona también con reportes anteriores y muestra el diagnóstico disponible; los errores genéricos antiguos no pueden clasificarse retrospectivamente y requieren repetir la carga.
+
+| Estado de VirusTotal | Acción |
+| --- | --- |
+| `not_configured` | Cargar `.env` en la terminal del worker y reiniciarlo |
+| `authentication_error` / `access_denied` | Revisar clave y permisos de la cuenta |
+| `quota_exceeded` | Esperar la recuperación de la cuota según el plan y volver a analizar |
+| `timeout` / `unavailable` | Comprobar conectividad/proxy/TLS y volver a analizar |
+| `unknown_hash` | No existe reporte: cambiar la clave o usar vt-py no crea un análisis. La aplicación no sube archivos automáticamente |
+| `invalid_response` / `no_results` | No hay resultados de motores utilizables; conservar «No concluyente» |
+
+Si la reputación está disponible, los hallazgos locales pueden seguir haciendo la cobertura incompleta (cifrado, formato no soportado, límites). La versión inicial marcaba todos los PDF como inspección limitada; actualiza y vuelve a cargar esos PDF para usar la inspección estructural. Los reportes guardados no cambian automáticamente.
 
 ## Pruebas
 

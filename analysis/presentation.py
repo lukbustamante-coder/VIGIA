@@ -20,6 +20,12 @@ VT_MESSAGES = {
     "unknown_hash": "VirusTotal no tiene un reporte para este hash. El archivo no se ha enviado.",
     "unavailable": "No fue posible obtener el reporte de VirusTotal.",
     "empty_report": "El reporte no contiene resultados de motores.",
+    "no_results": "VirusTotal no contiene resultados concluidos de motores.",
+    "authentication_error": "VirusTotal rechazó la API key utilizada por el worker.",
+    "access_denied": "La cuenta de VirusTotal no tiene permiso para esta consulta.",
+    "quota_exceeded": "Se alcanzó la cuota de consultas de VirusTotal.",
+    "timeout": "VirusTotal no respondió dentro del tiempo de espera.",
+    "invalid_response": "VirusTotal devolvió un reporte sin estadísticas válidas.",
 }
 STAT_KEYS = (
     "malicious",

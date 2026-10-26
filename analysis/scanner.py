@@ -17,6 +17,8 @@ import olefile
 import requests
 from defusedxml import ElementTree
 
+from .pdf_inspection import inspect_pdf
+
 MAX_BYTES = 20 * 1024 * 1024
 MAX_ENTRIES = 100
 URL_RE = re.compile(r'https?://[^\s<>"\x00-\x20]+', re.I)
@@ -43,17 +45,35 @@ class Inspector:
         }
         self.findings = []
         self.incomplete = False
+        self.local_incomplete = False
+        self.coverage_reasons = []
+        self.reputation_available = False
         self.malicious = False
         self.suspicious = False
         self.remaining = MAX_BYTES
         self.entries = 0
         self.providers = {}
 
-    def finding(self, message, suspicious=False, incomplete=False):
+    def finding(
+        self, message, suspicious=False, incomplete=False, reason="local_inspection_limited"
+    ):
         if len(self.findings) < 100:
             self.findings.append(message)
         self.suspicious |= suspicious
         self.incomplete |= incomplete
+        self.local_incomplete |= incomplete
+        if incomplete:
+            self.coverage_reason("local", reason, message)
+
+    def coverage_reason(self, source, code, message):
+        reason = {"source": source, "code": code, "message": message}
+        if reason not in self.coverage_reasons and len(self.coverage_reasons) < 100:
+            self.coverage_reasons.append(reason)
+
+    def reputation_issue(self, status, message):
+        self.providers["virustotal"] = {"status": status}
+        self.incomplete = True
+        self.coverage_reason("virustotal", status, message)
 
     def indicators(self, data):
         # Work is bounded; IOC values are untrusted and always displayed as escaped text.
@@ -99,10 +119,7 @@ class Inspector:
                 self.finding("La estructura no corresponde a un PDF completo.", suspicious=True)
             if re.search(rb"/(JavaScript|JS|Launch|OpenAction|EmbeddedFile)\b", data):
                 self.finding("PDF con acciones activas o archivos embebidos.", suspicious=True)
-            self.finding(
-                "PDF inspeccionado estáticamente; objetos comprimidos no se desofuscan.",
-                incomplete=True,
-            )
+            inspect_pdf(self, data)
         elif ext in {"zip", *OFFICE, *ODF}:
             self.archive(data, ext, depth)
         elif ext in {"doc", "xls", "ppt"}:
@@ -294,8 +311,9 @@ class Inspector:
     def virus_total(self, digest):
         key = os.getenv("VT_API_KEY", "")
         if not key:
-            self.providers["virustotal"] = {"status": "not_configured"}
-            self.incomplete = True
+            self.reputation_issue(
+                "not_configured", "El worker no tiene una API key de VirusTotal configurada."
+            )
             return
         try:
             response = requests.get(
@@ -305,14 +323,48 @@ class Inspector:
                 allow_redirects=False,
             )
             if response.status_code == 404:
-                self.providers["virustotal"] = {"status": "unknown_hash"}
-                self.incomplete = True
+                self.reputation_issue(
+                    "unknown_hash",
+                    "VirusTotal no tiene un reporte para este hash; no se envió el archivo.",
+                )
+                return
+            errors = {
+                401: ("authentication_error", "VirusTotal rechazó la API key."),
+                403: ("access_denied", "La cuenta no tiene acceso a esta consulta de VirusTotal."),
+                429: ("quota_exceeded", "Se alcanzó la cuota de consultas de VirusTotal."),
+            }
+            if response.status_code in errors:
+                self.reputation_issue(*errors[response.status_code])
                 return
             response.raise_for_status()
             attributes = response.json()["data"]["attributes"]
             stats = attributes["last_analysis_stats"]
-            malicious = int(stats.get("malicious", 0))
-            suspicious = int(stats.get("suspicious", 0))
+            keys = (
+                "malicious",
+                "suspicious",
+                "undetected",
+                "harmless",
+                "timeout",
+                "confirmed-timeout",
+                "failure",
+                "type-unsupported",
+            )
+            if not isinstance(stats, dict) or any(
+                type(stats.get(name, 0)) is not int or not 0 <= stats.get(name, 0) <= 10000
+                for name in keys
+            ):
+                raise ValueError("Invalid engine statistics")
+            stats = {name: stats.get(name, 0) for name in keys}
+            malicious = stats["malicious"]
+            suspicious = stats["suspicious"]
+            if (
+                sum(stats[name] for name in ("malicious", "suspicious", "undetected", "harmless"))
+                == 0
+            ):
+                self.reputation_issue(
+                    "no_results", "VirusTotal no contiene resultados concluidos de motores."
+                )
+                return
             self.providers["virustotal"] = {
                 "status": "ok",
                 "stats": stats,
@@ -320,11 +372,22 @@ class Inspector:
             }
             self.malicious |= malicious >= 2
             self.suspicious |= malicious == 1 or suspicious > 0
-            if sum(int(v) for v in stats.values()) == 0:
-                self.incomplete = True
-        except Exception:
-            self.providers["virustotal"] = {"status": "unavailable"}
-            self.incomplete = True
+            self.reputation_available = True
+        except requests.Timeout:
+            self.reputation_issue("timeout", "La consulta a VirusTotal superó el tiempo de espera.")
+        except requests.exceptions.JSONDecodeError:
+            self.reputation_issue(
+                "invalid_response", "VirusTotal devolvió un reporte sin estadísticas válidas."
+            )
+        except requests.RequestException:
+            self.reputation_issue(
+                "unavailable",
+                "No fue posible obtener el reporte de VirusTotal por un fallo HTTP o de conexión.",
+            )
+        except (ValueError, TypeError, KeyError):
+            self.reputation_issue(
+                "invalid_response", "VirusTotal devolvió un reporte sin estadísticas válidas."
+            )
 
     def ai(self):
         key = os.getenv("AI_API_KEY", "")
@@ -378,6 +441,11 @@ class Inspector:
                 "iocs": {key: sorted(values)[:100] for key, values in self.iocs.items()},
                 "findings": self.findings,
                 "incomplete": self.incomplete,
+                "coverage": {
+                    "local_complete": not self.local_incomplete,
+                    "reputation_available": self.reputation_available,
+                    "reasons": self.coverage_reasons,
+                },
                 "providers": self.providers,
                 "limitations": "Análisis estático sin ejecución ni sandbox antivirus. No demuestra inocuidad.",
             },
