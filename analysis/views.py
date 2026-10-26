@@ -61,7 +61,9 @@ def upload(request):
             recent = Submission.objects.filter(
                 owner=request.user, created_at__gte=timezone.now() - timedelta(hours=1)
             ).count()
-            pending = Submission.objects.filter(status__in=["queued", "running"]).count()
+            pending = Submission.objects.filter(
+                status__in=["queued", "running", "waiting_vt", "polling_vt"]
+            ).count()
             if recent >= 20 or pending >= 200:
                 return JsonResponse({"error": "Límite temporal de análisis alcanzado."}, status=429)
             file = form.cleaned_data["file"]
@@ -69,6 +71,7 @@ def upload(request):
                 owner=request.user,
                 kind=form.cleaned_data["kind"],
                 filename=Path(file.name).name[:255],
+                vt_upload_consent=bool(form.cleaned_data.get("vt_upload_consent")),
             )
             path = settings.PRIVATE_STORAGE / str(item.id)
             with open(path, "xb") as target:
@@ -80,6 +83,10 @@ def upload(request):
                         raise ValueError("Carga demasiado grande")
                     target.write(chunk)
             AuditEvent.objects.create(actor=request.user, action="upload", submission_id=item.id)
+            if item.vt_upload_consent:
+                AuditEvent.objects.create(
+                    actor=request.user, action="vt_upload_authorized", submission_id=item.id
+                )
         return redirect("result", pk=item.id)
     except Exception:
         if path:

@@ -21,7 +21,7 @@
             if (response.status === 401 || response.status === 403 || response.status === 404) return;
             if (response.ok) {
                 const result = await response.json();
-                if (["queued", "running", "done", "failed"].includes(result.status) &&
+                if (["queued", "running", "waiting_vt", "polling_vt", "done", "failed"].includes(result.status) &&
                     result.status !== report.dataset.analysisStatus) {
                     window.location.reload();
                     return;

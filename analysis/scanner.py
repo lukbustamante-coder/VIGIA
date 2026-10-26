@@ -18,6 +18,7 @@ import requests
 from defusedxml import ElementTree
 
 from .pdf_inspection import inspect_pdf
+from .virustotal import PENDING_STATUSES, fetch_analysis, submit_sample
 
 MAX_BYTES = 20 * 1024 * 1024
 MAX_ENTRIES = 100
@@ -308,7 +309,7 @@ class Inspector:
             else:
                 self.finding("Parte MIME sin analizador disponible.", incomplete=True)
 
-    def virus_total(self, digest):
+    def virus_total(self, digest, *, data=None, filename="sample.bin", upload_consent=False):
         key = os.getenv("VT_API_KEY", "")
         if not key:
             self.reputation_issue(
@@ -323,6 +324,18 @@ class Inspector:
                 allow_redirects=False,
             )
             if response.status_code == 404:
+                if (
+                    upload_consent
+                    and os.getenv("VT_ALLOW_SAMPLE_UPLOAD", "false").lower() == "true"
+                    and data is not None
+                ):
+                    provider = submit_sample(data, filename, key)
+                    self.reputation_issue(
+                        provider["status"],
+                        "Se solicitó un análisis externo autorizado; consulta su estado en el reporte.",
+                    )
+                    self.providers["virustotal"] = provider
+                    return
                 self.reputation_issue(
                     "unknown_hash",
                     "VirusTotal no tiene un reporte para este hash; no se envió el archivo.",
@@ -452,22 +465,79 @@ class Inspector:
         }
 
 
-def analyze(path, filename, kind):
+def analyze(path, filename, kind, *, upload_consent=False):
     data = Path(path).read_bytes()
     if len(data) > MAX_BYTES:
         raise ValueError("Archivo demasiado grande")
     inspector = Inspector()
     inspector.inspect(data, filename, kind)
-    # Query only the SHA-256 of the original; never upload samples or visit extracted URLs.
-    inspector.virus_total(hashlib.sha256(data).hexdigest())
-    inspector.ai()
+    local = {
+        "malicious": inspector.malicious,
+        "suspicious": inspector.suspicious,
+        "incomplete": inspector.local_incomplete,
+    }
+    # Reuse hash reports first. A sample upload requires both operator and user authorization.
+    inspector.virus_total(
+        hashlib.sha256(data).hexdigest(),
+        data=data,
+        filename=filename,
+        upload_consent=upload_consent,
+    )
+    provider = inspector.providers.get("virustotal", {})
+    if provider.get("analysis_id") and provider.get("status") in PENDING_STATUSES:
+        inspector.providers["ai"] = {"status": "deferred"}
+    else:
+        inspector.ai()
     result = inspector.result()
     result["details"]["file"] = {
         "sha256": hashlib.sha256(data).hexdigest(),
         "size_bytes": len(data),
     }
+    result["details"]["local_assessment"] = local
+    return result
+
+
+def poll_virustotal(details):
+    """Resume the original local assessment without rereading or resending the sample."""
+    inspector = Inspector()
+    local = details["local_assessment"]
+    inspector.malicious = local["malicious"] is True
+    inspector.suspicious = local["suspicious"] is True
+    inspector.local_incomplete = local["incomplete"] is True
+    inspector.incomplete = inspector.local_incomplete
+    inspector.findings = details.get("findings", [])[:100]
+    inspector.iocs = {
+        name: set(details.get("iocs", {}).get(name, [])[:100]) for name in inspector.iocs
+    }
+    inspector.coverage_reasons = [
+        r for r in details.get("coverage", {}).get("reasons", []) if r.get("source") == "local"
+    ][:100]
+    previous = details["providers"]["virustotal"]
+    provider = {**previous, **fetch_analysis(previous["analysis_id"], os.getenv("VT_API_KEY", ""))}
+    if provider["status"] == "ok":
+        inspector.malicious |= provider["stats"]["malicious"] >= 2
+        inspector.suspicious |= (
+            provider["stats"]["malicious"] == 1 or provider["stats"]["suspicious"] > 0
+        )
+        inspector.reputation_available = True
+        inspector.providers["virustotal"] = provider
+        inspector.ai()
+    else:
+        inspector.reputation_issue(
+            provider["status"], "El análisis externo no ha entregado un reporte completo."
+        )
+        inspector.providers["virustotal"] = provider
+        inspector.providers["ai"] = {"status": "deferred"}
+    result = inspector.result()
+    result["details"]["file"] = details.get("file", {})
+    result["details"]["local_assessment"] = local
     return result
 
 
 if __name__ == "__main__":
-    print(json.dumps(analyze(*sys.argv[1:4])))
+    if sys.argv[1:] == ["--poll-vt"]:
+        print(json.dumps(poll_virustotal(json.loads(sys.stdin.read(1024 * 1024)))))
+    else:
+        print(
+            json.dumps(analyze(*sys.argv[1:4], upload_consent=sys.argv[4:] == ["--upload-to-vt"]))
+        )

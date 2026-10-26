@@ -2,9 +2,11 @@
 
 ## Límites de confianza
 
-El navegador, archivos, nombres, metadatos EML, ZIP/XML y respuestas de IA son datos no confiables. Los únicos permisos administrativos provienen de un rol en un ID token verificado. La interfaz, el API JSON y las vistas aplican control de propietario/rol en el servidor. No existe descarga pública de muestras. El análisis es estático: no ejecuta archivos, macros, HTML ni enlaces.
+El navegador, archivos, nombres, metadatos EML, ZIP/XML y respuestas de IA son datos no confiables. Los únicos permisos administrativos provienen de un rol en un ID token verificado. La interfaz, el API JSON y las vistas aplican control de propietario/rol en el servidor. No existe descarga pública de muestras. El análisis local es estático: no ejecuta archivos, macros, HTML ni enlaces. El envío a VirusTotal está desactivado por defecto y requiere política explícita del operador y autorización por carga; el proveedor puede procesar y compartir la muestra según las condiciones de la cuenta. No se afirma que sus motores sean exclusivamente estáticos.
 
 Se guardan en la base de datos identificador de usuario pseudónimo ligado al issuer/sub, nombre del archivo, estado, veredicto, IOC, hallazgos y auditoría. Los IOC y los nombres pueden contener datos personales: acceso restringido, retención, cifrado y políticas internas siguen siendo necesarios. Las consultas a terceros son opcionales.
+
+Cuando se habilitan muestras, se conservan autorización, identificador de análisis y estado de espera en la base de datos; no se devuelven detalles del proveedor a usuarios comunes. Solo se envía el original autorizado, no se recorren adjuntos para compartirlos por separado. El identificador remoto se valida antes de usarlo en un endpoint fijo. Los redirects de API se rechazan y se conserva la verificación TLS. La muestra local se elimina tras la fase de inspección/envío; los pasos de polling no contienen ni reenvían el archivo. Un timeout de subida puede ocurrir después de que el tercero reciba contenido: la UI y auditoría no deben interpretarse como prueba de ausencia de transferencia. Las cuotas y la latencia no se resuelven cambiando la clasificación.
 
 ## Relación con OWASP Top 10
 

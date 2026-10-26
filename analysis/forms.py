@@ -4,6 +4,7 @@ from email import policy
 from email.parser import BytesHeaderParser
 
 from django import forms
+from django.conf import settings
 
 FILE_EXTENSIONS = {
     "pdf",
@@ -29,9 +30,21 @@ FILE_EXTENSIONS = {
 class UploadForm(forms.Form):
     kind = forms.ChoiceField(label="Módulo", choices=[("eml", "Correo EML"), ("file", "Archivo")])
     file = forms.FileField(label="Archivo")
+    vt_upload_consent = forms.BooleanField(
+        required=False,
+        label="Autorizar el envío de este archivo o correo a VirusTotal si no tiene reporte",
+        help_text="Se compartirá su contenido completo con VirusTotal y podrá estar disponible para sus socios de seguridad. Marca esta opción solo si tienes autorización para compartirlo y no contiene información confidencial.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.VT_ALLOW_SAMPLE_UPLOAD:
+            self.fields.pop("vt_upload_consent")
 
     def clean(self):
         data = super().clean()
+        if self.data.get("vt_upload_consent") and not settings.VT_ALLOW_SAMPLE_UPLOAD:
+            raise forms.ValidationError("El envío de muestras a VirusTotal no está habilitado.")
         file, kind = data.get("file"), data.get("kind")
         if file and kind:
             extension = file.name.rsplit(".", 1)[-1].lower()

@@ -48,11 +48,22 @@ La autorización administrativa depende de `resource_access.<client-id>.roles` d
 
 ## Proveedores opcionales
 
-- **VirusTotal**: `VT_API_KEY`. Consulta `GET /api/v3/files/<sha256>` del archivo original. Nunca sube muestras, adjuntos o correos; no solicita análisis de URLs. Aun un hash puede revelar la posesión de un archivo. Respeta términos, licencia y cuotas de tu cuenta. Dos o más motores con detección producen `Malicioso`; uno produce `Sospechoso`. Un hash desconocido, un fallo o una cuota agotada producen cobertura incompleta.
+- **VirusTotal**: `VT_API_KEY`. Consulta primero `GET /api/v3/files/<sha256>` del archivo original. Por defecto no envía muestras. Si el operador habilita `VT_ALLOW_SAMPLE_UPLOAD=true` y el usuario marca la autorización de esa carga, un hash desconocido se envía mediante `POST /api/v3/files` y se consulta `GET /api/v3/analyses/<id>` hasta obtener el reporte. La muestra se comparte con un tercero y puede estar disponible para socios de seguridad según las condiciones de tu cuenta; no habilites este modo para información confidencial sin autorización institucional. Se usa un nombre genérico en el envío, pero el contenido original completo se comparte. No se visitan URL extraídas. Dos o más motores con detección producen `Malicioso`; uno produce `Sospechoso`. Errores, cuotas y cobertura local incompleta pueden producir `No concluyente`.
 - **IA**: `AI_API_KEY` y, opcionalmente, `AI_MODEL`. Adaptador inicial a OpenAI. Recibe solo mensajes fijos de detectores y estados booleanos, nunca el archivo, cuerpo EML, IOC o nombre original. Su explicación se muestra únicamente a administradores y no cambia el veredicto. No tiene herramientas ni acceso a enlaces.
 - Sin claves, el análisis local funciona y la cobertura de reputación se marca incompleta. No se inventan resultados externos.
 
 Destinos de red: registro Python para instalación, dominio de tu Keycloak para Discovery/token/JWKS, `www.virustotal.com` y `api.openai.com` si habilitas los proveedores. No se visitan los dominios encontrados en las muestras. Conserva verificación TLS y no sigas redirecciones de proveedores.
+
+### Habilitar análisis de muestras desconocidas en VirusTotal
+
+1. Revisa privacidad, términos/licencia y cuotas de VirusTotal antes de habilitar transferencias de contenido.
+2. Conserva `VT_API_KEY` en `.env` o en el gestor de secretos y añade `VT_ALLOW_SAMPLE_UPLOAD=true`. Configura la misma política y clave en web y worker; por defecto la política es `false`.
+3. Detén web/worker cuando no haya trabajos en curso, actualiza el checkout y ejecuta `bash scripts/setup.sh` para aplicar las migraciones. Carga nuevamente `.env` en ambas terminales y reinicia los procesos.
+4. En cada carga autorizada marca «Autorizar el envío de este archivo o correo a VirusTotal si no tiene reporte». La casilla empieza desmarcada. La política global por sí sola no autoriza envíos; un checkbox falsificado con la política desactivada se rechaza.
+5. Si el hash ya existe, se reutiliza el reporte y no se envía la muestra. Si no existe, se envía una sola vez por trabajo, pasa a `waiting_vt` y se consulta aproximadamente cada 30 segundos (60 tras un 429), liberando el worker entre consultas. El resultado se actualiza automáticamente al terminar. La espera máxima es de 30 minutos o 60 consultas; pueden aplicarse límites más restrictivos del plan.
+6. Al obtener el identificador del análisis, se elimina la copia local de la muestra; las consultas posteriores usan el identificador y la evidencia ya guardada. Reiniciar el worker no vuelve a enviar una muestra ya registrada. Un fallo de conexión durante el envío puede dejar incierto si el proveedor la recibió; no se reintenta automáticamente ese envío.
+
+Los permisos administrativos siguen controlando estadísticas, hashes, IOC e identificadores del proveedor. Se auditan autorización, intento de envío, recepción del identificador y finalización. La auditoría local no es una transacción atómica con VirusTotal ni reemplaza un registro externo inmutable. La IA nunca recibe la muestra.
 
 ## Qué analiza
 
@@ -74,7 +85,9 @@ En una terminal de operación con las variables cargadas, ejecuta `uv run python
 | `authentication_error` / `access_denied` | Revisar clave y permisos de la cuenta |
 | `quota_exceeded` | Esperar la recuperación de la cuota según el plan y volver a analizar |
 | `timeout` / `unavailable` | Comprobar conectividad/proxy/TLS y volver a analizar |
-| `unknown_hash` | No existe reporte: cambiar la clave o usar vt-py no crea un análisis. La aplicación no sube archivos automáticamente |
+| `unknown_hash` | No existe reporte y no se autorizó el envío: habilitar el modo de muestras y marcar la autorización en una nueva carga si está permitido |
+| `queued` / `in-progress` | La muestra autorizada está esperando o procesándose en VirusTotal; mantener el worker activo |
+| `analysis_timeout` | No llegó un reporte dentro de los límites de espera; se conserva la evidencia local |
 | `invalid_response` / `no_results` | No hay resultados de motores utilizables; conservar «No concluyente» |
 
 Si la reputación está disponible, los hallazgos locales pueden seguir haciendo la cobertura incompleta (cifrado, formato no soportado, límites). La versión inicial marcaba todos los PDF como inspección limitada; actualiza y vuelve a cargar esos PDF para usar la inspección estructural. Los reportes guardados no cambian automáticamente.
@@ -98,7 +111,7 @@ Las pruebas verifican carga → worker real → resultado → borrado de la mues
 1. `VIGIA_DEBUG=false`; secreto estable y único; hosts y `VIGIA_CSRF_ORIGINS` explícitos; SSO y callback HTTPS exactos.
 2. PostgreSQL mediante `PGHOST`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGPORT` y `PGSSLMODE=verify-full`. Instala la CA del servidor en el almacén de confianza de libpq si hace falta. SQLite es solo el valor inicial para desarrollo.
 3. Ejecuta migraciones y `collectstatic`, luego `uv run gunicorn vigia.wsgi:application --bind 127.0.0.1:8000 --workers 2 --timeout 45`. WhiteNoise sirve los recursos estáticos públicos; nunca las muestras.
-4. Supervisa `scan_worker` como proceso separado, mismo almacenamiento privado y base de datos. Se ejecuta en Linux: cada análisis usa un subproceso limitado a 90 s de tiempo total, 30 s CPU, 512 MiB de memoria y 64 descriptores. Los fallos y los trabajos interrumpidos producen `No concluyente`. Estos límites **no constituyen una sandbox de seguridad del sistema operativo**.
+4. Supervisa `scan_worker` como proceso separado, mismo almacenamiento privado y base de datos. Se ejecuta en Linux: cada paso usa un subproceso limitado a 90 s de tiempo total, 30 s CPU, 512 MiB de memoria y 64 descriptores. La espera de VirusTotal se persiste y reanuda sin mantener un subproceso vivo durante minutos. `scan_worker --once` procesa como máximo un paso (inspección/envío o consulta pendiente). Los fallos conservan las detecciones locales ya registradas; sin evidencia concluyente producen `No concluyente`. Estos límites **no constituyen una sandbox de seguridad del sistema operativo**.
 5. Usa proxy TLS confiable con límite de cuerpo 21 MB, timeouts, cuotas globales de disco y rate limiting por identidad/IP. Habilita `VIGIA_TRUST_PROXY=true` solo si el proxy elimina y reemplaza `X-Forwarded-Proto`. No expongas Gunicorn directamente. No configures origen comodín.
 6. Almacena `var/uploads` fuera del contenido público, con permisos restrictivos, cifrado de disco y backups protegidos. Las muestras se borran al terminar el análisis; los errores también intentan borrarlas. Programa diariamente `uv run python manage.py purge_submissions`: elimina resultados de más de 30 días, auditoría de más de 90 y muestras huérfanas de más de 10 minutos. Sin este scheduler, esa retención de resultados no se ejecuta sola.
 7. Aísla web y scanner en contenedores/procesos con usuarios mínimos, filesystem restringido, seccomp/AppArmor, sin acceso del scanner a secretos SSO/DB ni a redes internas, y egress solo a proveedores permitidos. El subproceso recibe únicamente variables necesarias para proveedores, proxy y TLS.

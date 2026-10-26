@@ -15,6 +15,10 @@ class Submission(models.Model):
     status = models.CharField(max_length=12, default="queued")
     verdict = models.CharField(max_length=24, default="pending")
     details = models.JSONField(default=dict)
+    vt_upload_consent = models.BooleanField(default=False)
+    vt_next_poll_at = models.DateTimeField(null=True)
+    vt_deadline_at = models.DateTimeField(null=True)
+    vt_poll_count = models.PositiveSmallIntegerField(default=0)
 
 
 class AuditEvent(models.Model):

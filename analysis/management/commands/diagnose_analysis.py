@@ -35,6 +35,9 @@ class Command(BaseCommand):
                     "status": item.status,
                     "verdict": item.verdict,
                     "virustotal_status": provider.get("status", "no_record"),
+                    "sample_upload_authorized": item.vt_upload_consent,
+                    "sample_upload_attempted": provider.get("upload_attempted") is True,
+                    "sample_uploaded": provider.get("sample_uploaded"),
                     "coverage": coverage
                     if coverage is not None
                     else {

@@ -8,6 +8,8 @@ STATUS_LABELS = {
     "running": "Analizando",
     "done": "Completado",
     "failed": "No completado",
+    "waiting_vt": "Esperando a VirusTotal",
+    "polling_vt": "Consultando VirusTotal",
 }
 VERDICT_MESSAGES = {
     "malicious": "Se detectaron indicadores de contenido malicioso. Evita abrir el archivo.",
@@ -26,6 +28,10 @@ VT_MESSAGES = {
     "quota_exceeded": "Se alcanzó la cuota de consultas de VirusTotal.",
     "timeout": "VirusTotal no respondió dentro del tiempo de espera.",
     "invalid_response": "VirusTotal devolvió un reporte sin estadísticas válidas.",
+    "queued": "Muestra enviada con autorización. VirusTotal aún está procesando el archivo.",
+    "in-progress": "VirusTotal está analizando la muestra autorizada.",
+    "analysis_not_found": "VirusTotal no encuentra el análisis solicitado.",
+    "analysis_timeout": "VirusTotal no completó el análisis dentro del plazo de espera.",
 }
 STAT_KEYS = (
     "malicious",
@@ -40,7 +46,7 @@ STAT_KEYS = (
 
 
 def result_summary(item, admin):
-    pending = item.status in {"queued", "running"}
+    pending = item.status in {"queued", "running", "waiting_vt", "polling_vt"}
     summary = {
         "pending": pending,
         "status_label": STATUS_LABELS.get(item.status, "Estado desconocido"),
@@ -59,6 +65,10 @@ def result_summary(item, admin):
             if item.status == "queued"
             else "Estamos revisando el archivo. El resultado se actualizará automáticamente."
         )
+        if item.status in {"waiting_vt", "polling_vt"}:
+            summary["message"] = (
+                "El archivo se envió con tu autorización. Estamos esperando el análisis de VirusTotal; puede tardar varios minutos. Esta página se actualizará automáticamente."
+            )
     if not admin:
         return summary
 
@@ -79,6 +89,7 @@ def result_summary(item, admin):
             "created_at": item.created_at,
             "finished_at": item.finished_at,
             "has_report": False,
+            "sample_uploaded": vt.get("sample_uploaded") is True,
             "vt_message": "Consulta pendiente."
             if pending
             else VT_MESSAGES.get(

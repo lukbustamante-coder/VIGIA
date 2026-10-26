@@ -46,7 +46,7 @@
     {% if summary.has_report %}
     <p class="reputation-description"><strong>{{ summary.malicious }} de {{ summary.total }} motores</strong> reportan contenido malicioso. Esta cifra corresponde al reporte de VirusTotal, no al conjunto de hallazgos de VIGIA.</p>
     <dl class="engine-stats"><div class="stat-malicious"><dt>Maliciosos</dt><dd>{{ summary.malicious }}</dd></div><div class="stat-suspicious"><dt>Sospechosos</dt><dd>{{ summary.suspicious }}</dd></div><div><dt>Sin detección reportada</dt><dd>{{ summary.unflagged }}</dd></div><div><dt>Sin respuesta o no compatibles</dt><dd>{{ summary.not_covered }}</dd></div></dl>
-    {% timezone "America/Santiago" %}<p class="muted">{% if summary.vt_date %}Fecha del reporte de VirusTotal: {{ summary.vt_date|date:'d/m/Y H:i T' }}.{% else %}La fecha del reporte de VirusTotal no está disponible.{% endif %} Se consulta por hash; no se envía el archivo.</p>{% endtimezone %}
+    {% timezone "America/Santiago" %}<p class="muted">{% if summary.vt_date %}Fecha del reporte de VirusTotal: {{ summary.vt_date|date:'d/m/Y H:i T' }}.{% else %}La fecha del reporte de VirusTotal no está disponible.{% endif %} {% if summary.sample_uploaded %}Reporte de una muestra enviada con autorización.{% else %}Reporte consultado por hash; no se envió el archivo.{% endif %}</p>{% endtimezone %}
     {% else %}<div class="empty-reputation"><span aria-hidden="true">ⓘ</span><p>{{ summary.vt_message }} No se muestra una puntuación sin datos de motores.</p></div>{% endif %}
 </section>
 {% if result.details %}
