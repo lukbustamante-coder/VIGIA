@@ -5,7 +5,7 @@ class SecurityHeadersMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         response["Content-Security-Policy"] = (
-            "default-src 'none'; style-src 'self'; img-src 'self'; "
+            "default-src 'none'; style-src 'self'; img-src 'self'; script-src 'self'; connect-src 'self'; "
             "form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
         )
         response["X-Frame-Options"] = "DENY"

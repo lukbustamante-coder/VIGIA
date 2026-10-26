@@ -364,3 +364,176 @@ def test_expired_worker_is_recovered(user):
     call_command("scan_worker", once=True)
     item.refresh_from_db()
     assert item.status == "failed" and item.verdict == "inconclusive"
+
+
+def make_admin(client):
+    session = client.session
+    session["roles"] = ["vigia-admin"]
+    session.save()
+
+
+def test_result_score_uses_real_vt_counts_without_overriding_local_verdict(client, user):
+    item = Submission.objects.create(
+        owner=user,
+        filename="report.pdf",
+        kind="file",
+        status="done",
+        verdict="malicious",
+        details={
+            "file": {"sha256": "a" * 64, "size_bytes": 4096},
+            "providers": {
+                "virustotal": {
+                    "status": "ok",
+                    "stats": {"malicious": 0, "suspicious": 0, "undetected": 60},
+                    "last_analysis_date": 1700000000,
+                }
+            },
+        },
+    )
+    client.force_login(user)
+    make_admin(client)
+    response = client.get(f"/results/{item.id}/")
+    summary = response.context["summary"]
+    assert summary["has_report"] and summary["malicious"] == 0 and summary["total"] == 60
+    assert summary["file_size"] == 4096
+    assert summary["vt_date"].timestamp() == 1700000000
+    assert response.context["result"]["label"] == "Malicioso"
+    assert b"report.pdf" in response.content and b"SHA-256" in response.content
+    assert b"/ 60" in response.content
+
+
+@pytest.mark.parametrize(
+    "provider",
+    [
+        {},
+        {"status": "unknown_hash"},
+        {"status": "unavailable"},
+        {"status": "not_configured"},
+        {"status": "ok", "stats": {}},
+        {"status": "ok", "stats": {"malicious": -1, "undetected": 60}},
+        {"status": "ok", "stats": {"malicious": "2"}},
+    ],
+)
+def test_missing_or_invalid_vt_report_never_shows_zero_score(client, user, provider):
+    item = Submission.objects.create(
+        owner=user,
+        filename="sample.txt",
+        kind="file",
+        status="done",
+        verdict="inconclusive",
+        details={"providers": {"virustotal": provider}},
+    )
+    client.force_login(user)
+    make_admin(client)
+    response = client.get(f"/results/{item.id}/")
+    assert response.status_code == 200
+    assert not response.context["summary"]["has_report"]
+    assert "Sin puntuación disponible" in response.content.decode()
+    assert b"score-neutral" not in response.content
+
+
+def test_user_result_never_exposes_admin_summary_or_provider_data(client, user):
+    item = Submission.objects.create(
+        owner=user,
+        filename="private-filename.pdf",
+        kind="file",
+        status="done",
+        verdict="suspicious",
+        details={
+            "file": {"sha256": "b" * 64, "size_bytes": 123456},
+            "iocs": {"urls": ["https://hidden.example"]},
+            "providers": {
+                "virustotal": {"status": "ok", "stats": {"malicious": 1, "undetected": 75}}
+            },
+        },
+    )
+    client.force_login(user)
+    response = client.get(f"/results/{item.id}/")
+    for value in [
+        b"private-filename",
+        b"hidden.example",
+        b"b" * 64,
+        b"/ 76",
+        b"engine-stats",
+        b"VIRUSTOTAL",
+    ]:
+        assert value not in response.content
+    assert "total" not in response.context["summary"]
+    payload = client.get(f"/results/{item.id}/?format=json").json()
+    assert set(payload) == {"id", "status", "verdict", "label"}
+
+
+def test_polling_only_enabled_for_pending_results(client, user):
+    item = Submission.objects.create(owner=user, filename="sample.txt", kind="file")
+    client.force_login(user)
+    response = client.get(f"/results/{item.id}/")
+    assert b'data-analysis-status="queued"' in response.content
+    assert b"result.js" in response.content
+    assert "script-src 'self'" in response["Content-Security-Policy"]
+    assert "connect-src 'self'" in response["Content-Security-Policy"]
+    item.status = "done"
+    item.verdict = "inconclusive"
+    item.save()
+    response = client.get(f"/results/{item.id}/")
+    assert b"data-analysis-status" not in response.content
+    assert b"result.js" not in response.content
+
+
+def test_vt_retains_original_file_metadata_and_report_timestamp(monkeypatch, tmp_path):
+    import hashlib
+
+    from analysis.scanner import analyze
+
+    monkeypatch.setenv("VT_API_KEY", "test-key")
+    monkeypatch.delenv("AI_API_KEY", raising=False)
+    path = tmp_path / "sample.txt"
+    path.write_bytes(b"test report metadata")
+    with patch("analysis.scanner.requests.get") as get:
+        get.return_value.status_code = 200
+        get.return_value.json.return_value = {
+            "data": {
+                "attributes": {
+                    "last_analysis_stats": {"malicious": 2, "suspicious": 1, "undetected": 57},
+                    "last_analysis_date": 1700000000,
+                }
+            }
+        }
+        result = analyze(path, "sample.txt", "file")
+    assert result["verdict"] == "malicious"
+    assert result["details"]["file"] == {
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "size_bytes": path.stat().st_size,
+    }
+    assert result["details"]["providers"]["virustotal"]["last_analysis_date"] == 1700000000
+
+
+def test_vt_score_denominator_includes_incomplete_engine_results(user):
+    from analysis.presentation import result_summary
+
+    item = Submission.objects.create(
+        owner=user,
+        filename="sample.txt",
+        kind="file",
+        status="done",
+        verdict="malicious",
+        details={
+            "providers": {
+                "virustotal": {
+                    "status": "ok",
+                    "stats": {
+                        "malicious": 3,
+                        "suspicious": 2,
+                        "undetected": 40,
+                        "harmless": 8,
+                        "timeout": 1,
+                        "failure": 1,
+                        "type-unsupported": 5,
+                    },
+                }
+            }
+        },
+    )
+    summary = result_summary(item, admin=True)
+    assert summary["malicious"] == 3 and summary["total"] == 60
+    assert summary["suspicious"] == 2 and summary["unflagged"] == 48
+    assert summary["not_covered"] == 7

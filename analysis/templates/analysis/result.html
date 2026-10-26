@@ -1,2 +1,59 @@
-{% extends 'analysis/base.html' %}{% block content %}<a href="/">← Volver a los análisis</a><p class="eyebrow">RESULTADO DEL ANÁLISIS</p><section class="card verdict {{ result.verdict }}"><p class="tag">{{ result.status }}</p><h1>{{ result.label }}</h1>{% if result.status == 'queued' or result.status == 'running' %}<p>El archivo está en revisión. Actualiza esta página para consultar el resultado.</p><a class="button" href="">Actualizar resultado</a>{% else %}<p>Un análisis no garantiza la ausencia de amenazas. Si tienes dudas, contacta al equipo de seguridad.</p>{% endif %}</section>
-{% if admin and result.details %}<section class="card"><p class="eyebrow">SOLO ADMINISTRADORES</p><h2>Indicadores de compromiso</h2>{% for category, values in result.details.iocs.items %}<h3>{{ category }}</h3><ul>{% for value in values %}<li><code>{{ value }}</code></li>{% empty %}<li>Sin indicadores extraídos.</li>{% endfor %}</ul>{% endfor %}<h2>Hallazgos</h2><ul>{% for finding in result.details.findings %}<li>{{ finding }}</li>{% endfor %}</ul><h2>Proveedores</h2>{% for provider, data in result.details.providers.items %}<h3>{{ provider }}</h3><pre>{{ data }}</pre>{% endfor %}<p>{{ result.details.limitations }}</p>{% if result.details.error %}<p>{{ result.details.error }}</p>{% endif %}</section>{% endif %}{% endblock %}
+{% extends 'analysis/base.html' %}
+{% load static tz %}
+
+{% block extra_head %}
+{% if summary.pending %}<script src="{% static 'analysis/result.js' %}" defer></script>{% endif %}
+{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{% url 'dashboard' %}">← Volver a los análisis</a>
+<div class="result-heading"><div><p class="eyebrow">RESULTADO DEL ANÁLISIS</p><h1>Resumen de seguridad</h1></div><span class="access-badge">{% if admin %}Vista de administrador{% else %}Tu veredicto{% endif %}</span></div>
+
+<div class="analysis-overview tone-{{ summary.tone }}"{% if summary.pending %} data-analysis-status="{{ result.status }}" data-poll-url="{% url 'result' result.id %}?format=json"{% endif %}>
+    <aside class="score-card">
+        {% if admin and summary.has_report %}
+        <div class="score-ring score-{{ summary.score_tone }}" role="img" aria-label="{{ summary.score_label }}">
+            <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false"><circle class="ring-track" cx="60" cy="60" r="50"/><circle class="ring-value" cx="60" cy="60" r="50" pathLength="100" stroke-dasharray="{{ summary.ring_percent }} 100" transform="rotate(-90 60 60)"/></svg>
+            <div class="score-value" aria-hidden="true"><strong>{{ summary.malicious }}</strong><span>/ {{ summary.total }}</span></div>
+        </div>
+        <p class="score-caption">Motores con detección</p><span class="source-label">VIRUSTOTAL</span>
+        {% else %}
+        <div class="score-ring verdict-ring" aria-hidden="true"><svg viewBox="0 0 120 120" focusable="false"><circle class="ring-track" cx="60" cy="60" r="50"/><circle class="ring-value" cx="60" cy="60" r="50"/></svg><div class="score-value"><strong>{% if admin %}—{% else %}{{ summary.symbol }}{% endif %}</strong></div></div>
+        <p class="score-caption">{% if admin %}Sin puntuación disponible{% else %}{{ result.label }}{% endif %}</p><span class="source-label">{% if admin %}VIRUSTOTAL{% else %}VIGIA{% endif %}</span>
+        {% endif %}
+    </aside>
+
+    <section class="report-card" aria-label="Veredicto del análisis">
+        <div class="verdict-banner"><div><span class="status-dot" aria-hidden="true"></span><strong>{% if summary.pending %}{{ summary.status_label }}{% else %}{{ result.label }}{% endif %}</strong></div><span class="status-pill">{{ summary.status_label }}</span></div>
+        <div class="report-body">
+            <p class="verdict-message">{{ summary.message }}</p>
+            {% if admin %}
+            <div class="file-identity"><span class="file-icon" aria-hidden="true">{{ summary.file_type }}</span><div><h2>{{ summary.filename }}</h2><p class="file-hash">{% if summary.file_hash %}<span>SHA-256</span> <code>{{ summary.file_hash }}</code>{% else %}Hash del archivo original no disponible en este reporte.{% endif %}</p></div></div>
+            {% timezone "America/Santiago" %}
+            <dl class="file-metadata"><div><dt>Tamaño</dt><dd>{% if summary.file_size != None %}{{ summary.file_size|filesizeformat }}{% else %}No disponible{% endif %}</dd></div><div><dt>Recibido</dt><dd>{{ summary.created_at|date:'d/m/Y H:i T' }}</dd></div><div><dt>Procesado</dt><dd>{% if summary.finished_at %}{{ summary.finished_at|date:'d/m/Y H:i T' }}{% else %}Pendiente{% endif %}</dd></div></dl>
+            {% endtimezone %}
+            {% else %}
+            <p class="verdict-note">{% if summary.pending %}Puedes mantener esta página abierta mientras se procesa el archivo.{% else %}Si necesitas ayuda con este resultado, contacta a tu equipo de seguridad.{% endif %}</p>
+            {% endif %}
+            {% if summary.pending %}<div class="pending-footer"><span class="activity-indicator" aria-hidden="true"></span><span>Actualización automática activada</span><a href="">Actualizar ahora</a></div>{% endif %}
+        </div>
+    </section>
+</div>
+
+{% if admin %}
+<section class="card reputation-card" aria-labelledby="reputation-heading">
+    <div class="section-title"><h2 id="reputation-heading">Reputación en VirusTotal</h2><span class="tag">SOLO ADMINISTRADORES</span></div>
+    {% if summary.has_report %}
+    <p class="reputation-description"><strong>{{ summary.malicious }} de {{ summary.total }} motores</strong> reportan contenido malicioso. Esta cifra corresponde al reporte de VirusTotal, no al conjunto de hallazgos de VIGIA.</p>
+    <dl class="engine-stats"><div class="stat-malicious"><dt>Maliciosos</dt><dd>{{ summary.malicious }}</dd></div><div class="stat-suspicious"><dt>Sospechosos</dt><dd>{{ summary.suspicious }}</dd></div><div><dt>Sin detección reportada</dt><dd>{{ summary.unflagged }}</dd></div><div><dt>Sin respuesta o no compatibles</dt><dd>{{ summary.not_covered }}</dd></div></dl>
+    {% timezone "America/Santiago" %}<p class="muted">{% if summary.vt_date %}Fecha del reporte de VirusTotal: {{ summary.vt_date|date:'d/m/Y H:i T' }}.{% else %}La fecha del reporte de VirusTotal no está disponible.{% endif %} Se consulta por hash; no se envía el archivo.</p>{% endtimezone %}
+    {% else %}<div class="empty-reputation"><span aria-hidden="true">ⓘ</span><p>{{ summary.vt_message }} No se muestra una puntuación sin datos de motores.</p></div>{% endif %}
+</section>
+{% if result.details %}
+<section class="admin-evidence"><details class="card evidence-card" open><summary>Hallazgos de VIGIA</summary><ul>{% for finding in result.details.findings %}<li>{{ finding }}</li>{% empty %}<li>No hay hallazgos locales registrados.</li>{% endfor %}</ul>{% if result.details.error %}<p>No fue posible completar el procesamiento del archivo.</p>{% endif %}{% if result.details.limitations %}<p class="muted">{{ result.details.limitations }}</p>{% endif %}</details>
+<details class="card evidence-card"><summary>Indicadores de compromiso</summary>{% for category, values in result.details.iocs.items %}<h3>{{ category }}</h3><ul class="ioc-list">{% for value in values %}<li><code>{{ value }}</code></li>{% empty %}<li>Sin indicadores extraídos.</li>{% endfor %}</ul>{% empty %}<p>No hay indicadores registrados.</p>{% endfor %}</details>
+{% if result.details.providers.ai.explanation %}<details class="card evidence-card"><summary>Explicación asistida por IA</summary><p>{{ result.details.providers.ai.explanation }}</p><p class="muted">Texto de apoyo para la investigación; no modifica el veredicto.</p></details>{% endif %}</section>
+{% endif %}
+{% endif %}
+<p class="result-disclaimer">El análisis combina las comprobaciones disponibles. La ausencia de detecciones no garantiza que un archivo sea seguro.</p>
+{% endblock %}

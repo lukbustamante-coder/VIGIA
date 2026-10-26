@@ -309,10 +309,15 @@ class Inspector:
                 self.incomplete = True
                 return
             response.raise_for_status()
-            stats = response.json()["data"]["attributes"]["last_analysis_stats"]
+            attributes = response.json()["data"]["attributes"]
+            stats = attributes["last_analysis_stats"]
             malicious = int(stats.get("malicious", 0))
             suspicious = int(stats.get("suspicious", 0))
-            self.providers["virustotal"] = {"status": "ok", "stats": stats}
+            self.providers["virustotal"] = {
+                "status": "ok",
+                "stats": stats,
+                "last_analysis_date": attributes.get("last_analysis_date"),
+            }
             self.malicious |= malicious >= 2
             self.suspicious |= malicious == 1 or suspicious > 0
             if sum(int(v) for v in stats.values()) == 0:
@@ -388,7 +393,12 @@ def analyze(path, filename, kind):
     # Query only the SHA-256 of the original; never upload samples or visit extracted URLs.
     inspector.virus_total(hashlib.sha256(data).hexdigest())
     inspector.ai()
-    return inspector.result()
+    result = inspector.result()
+    result["details"]["file"] = {
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "size_bytes": len(data),
+    }
+    return result
 
 
 if __name__ == "__main__":

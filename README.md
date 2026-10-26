@@ -4,6 +4,8 @@ Portal defensivo en **Python 3.12 y Django 5.2 LTS**, con interfaz en español. 
 
 Los usuarios autenticados consultan el veredicto de sus propias cargas. Los administradores con el rol OIDC de cliente `vigia-admin` consultan todos los análisis, indicadores de compromiso y evidencia. La aplicación no ofrece acceso anónimo a los análisis ni contraseñas locales.
 
+La pantalla de resultados incluye un resumen visual y actualización automática mientras el trabajo está en cola o en ejecución. Los administradores ven un contador circular de motores maliciosos/total según el reporte real de VirusTotal, el desglose de resultados, SHA-256, tamaño y fechas del archivo. El veredicto general también considera los hallazgos locales y puede diferir de la puntuación de VirusTotal. Los usuarios comunes mantienen únicamente el veredicto. Si no hay reporte o falla la consulta, se muestra «Sin puntuación disponible»; no se inventan cifras. El tamaño, hash del original y fecha del reporte se registran en nuevos análisis; los reportes antiguos pueden mostrar datos no disponibles. Las fechas de esta pantalla se presentan en America/Santiago.
+
 **Estado: primera versión funcional para desarrollo, no un producto certificado ni un motor antivirus completo.** La conexión a tu Keycloak y a proveedores reales queda pendiente de configuración. No se ha validado contra una instalación real de Keycloak 26.4.11 / Red Hat build of Keycloak; el protocolo implementado es OIDC Discovery + Authorization Code + PKCE S256.
 
 ## Inicio local

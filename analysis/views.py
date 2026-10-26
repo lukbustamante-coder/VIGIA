@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .auth import is_admin
 from .forms import UploadForm
 from .models import AuditEvent, Submission
+from .presentation import result_summary
 
 LABELS = {
     "pending": "Pendiente",
@@ -105,7 +106,15 @@ def result(request, pk):
         AuditEvent.objects.create(actor=request.user, action="view_ioc", submission_id=item.id)
     if request.GET.get("format") == "json":
         return JsonResponse(payload)
-    return render(request, "analysis/result.html", {"result": payload, "admin": admin})
+    return render(
+        request,
+        "analysis/result.html",
+        {
+            "result": payload,
+            "admin": admin,
+            "summary": result_summary(item, admin),
+        },
+    )
 
 
 @require_GET
