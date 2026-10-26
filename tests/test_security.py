@@ -66,6 +66,28 @@ def test_csrf_and_method_enforced(user):
     assert client.get("/auth/logout/").status_code == 405
 
 
+@pytest.mark.parametrize(
+    "origin, expected", [("http://testserver", 302), ("https://other.example", 403), ("null", 403)]
+)
+def test_upload_csrf_origin_validation(user, origin, expected):
+    client = Client(enforce_csrf_checks=True)
+    client.force_login(user)
+    response = client.get("/")
+    assert response["Referrer-Policy"] == "same-origin"
+    token = client.cookies["csrftoken"].value
+    response = client.post(
+        "/upload/",
+        {
+            "kind": "file",
+            "file": SimpleUploadedFile("sample.txt", b"CSRF protected upload"),
+            "csrfmiddlewaretoken": token,
+        },
+        HTTP_ORIGIN=origin,
+    )
+    assert response.status_code == expected
+    assert Submission.objects.count() == (1 if expected == 302 else 0)
+
+
 def test_user_cannot_read_another_users_result(client, user, other):
     item = Submission.objects.create(
         owner=other,

@@ -80,7 +80,9 @@ SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = "no-referrer"
+# Form POSTs under no-referrer can carry Origin: null and fail Django's CSRF check.
+# Preserve the origin for same-site forms without sending a referrer to other sites.
+SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 CSRF_TRUSTED_ORIGINS = list(filter(None, os.getenv("VIGIA_CSRF_ORIGINS", "").split(",")))
 # Enable only behind a trusted reverse proxy that overwrites X-Forwarded-Proto.
