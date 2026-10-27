@@ -9,8 +9,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_safe
 
 from .auth import is_admin
 from .forms import FILE_EXTENSIONS, UploadForm, URLAnalysisForm
@@ -24,6 +25,11 @@ LABELS = {
     "no_indicators": "Sin indicios detectados",
     "inconclusive": "No concluyente",
 }
+
+
+@require_safe
+def favicon(request):
+    return redirect(static("analysis/favicon.svg"))
 
 
 def quota_exceeded(user):

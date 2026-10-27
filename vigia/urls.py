@@ -4,6 +4,7 @@ from analysis import auth, views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("favicon.ico", views.favicon, name="favicon"),
     path("analisis/correos/", views.dashboard, {"module": "eml"}, name="email_analysis"),
     path("analisis/archivos/", views.dashboard, {"module": "file"}, name="file_analysis"),
     path("analisis/urls/", views.dashboard, {"module": "url"}, name="url_analysis"),
