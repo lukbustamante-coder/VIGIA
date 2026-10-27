@@ -538,13 +538,21 @@ class Inspector:
         }
 
 
-def analyze(path, filename, kind, *, upload_consent=False, ai_header_consent=False):
+def analyze(
+    path, filename, kind, *, upload_consent=False, ai_header_consent=False, mxtoolbox_consent=False
+):
     data = Path(path).read_bytes()
     if len(data) > MAX_BYTES:
         raise ValueError("Archivo demasiado grande")
     inspector = Inspector()
     inspector.ai_header_consent = ai_header_consent
     inspector.inspect(data, filename, kind)
+    if kind == "eml":
+        from .mxtoolbox import check_configuration
+
+        inspector.providers["mxtoolbox"] = check_configuration(
+            inspector.email_headers, consent=mxtoolbox_consent
+        )
     local = {
         "malicious": inspector.malicious,
         "suspicious": inspector.suspicious,
@@ -629,6 +637,8 @@ def poll_virustotal(details):
     result = inspector.result()
     result["details"]["file"] = details.get("file", {})
     result["details"]["local_assessment"] = local
+    if "mxtoolbox" in details.get("providers", {}):
+        result["details"]["providers"]["mxtoolbox"] = details["providers"]["mxtoolbox"]
     return result
 
 
@@ -651,6 +661,7 @@ if __name__ == "__main__":
                     *sys.argv[1:4],
                     upload_consent="--upload-to-vt" in sys.argv[4:],
                     ai_header_consent="--ai-headers" in sys.argv[4:],
+                    mxtoolbox_consent="--mxtoolbox" in sys.argv[4:],
                 )
             )
         )

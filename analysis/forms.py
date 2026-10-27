@@ -83,6 +83,11 @@ class UploadForm(forms.Form):
         label="Autorizar el envío de los encabezados de este correo a la IA configurada",
         help_text="Puede incluir remitentes, destinatarios, asunto, servidores y direcciones IP. No se envían el cuerpo ni los adjuntos. Marca esta opción solo si tienes autorización para compartir esos datos con el proveedor externo.",
     )
+    mxtoolbox_consent = forms.BooleanField(
+        required=False,
+        label="Autorizar consultas de configuración del correo en MXToolbox",
+        help_text="Se compartirán solo los dominios de correo y, si está disponible, un selector de firma DKIM. No se envían direcciones completas, cuerpo ni adjuntos. Puede consumir hasta tres consultas DNS de la cuenta.",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,9 +96,17 @@ class UploadForm(forms.Form):
         module = self.data.get("kind") if self.is_bound else self.initial.get("kind")
         if not settings.AI_ALLOW_HEADER_UPLOAD or module != "eml":
             self.fields.pop("ai_header_consent")
+        if not settings.MXTOOLBOX_ENABLED or module != "eml":
+            self.fields.pop("mxtoolbox_consent")
 
     def clean(self):
         data = super().clean()
+        if self.data.get("mxtoolbox_consent") and (
+            not settings.MXTOOLBOX_ENABLED or data.get("kind") != "eml"
+        ):
+            raise forms.ValidationError(
+                "Las consultas a MXToolbox no están habilitadas para este módulo."
+            )
         if self.data.get("ai_header_consent") and (
             not settings.AI_ALLOW_HEADER_UPLOAD or data.get("kind") != "eml"
         ):

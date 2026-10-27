@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .ai_reports import clean_report
 from .email_language import explain_content, explain_method, explain_routing
+from .mxtoolbox import public_summary as public_dns_summary
 from .url_categories import public_categories
 
 
@@ -51,6 +52,7 @@ def email_explanation(item):
         "routing_explanation": explain_routing(headers),
         "content_explanation": explain_content(details, headers),
         "recommendation": recommendation,
+        "dns_configuration": public_dns_summary(providers.get("mxtoolbox")),
     }
 
 

@@ -40,6 +40,10 @@ class Command(BaseCommand):
                     .get("ai", {})
                     .get("status", "no_record"),
                     "ai_header_upload_authorized": item.ai_header_consent,
+                    "mxtoolbox_status": details.get("providers", {})
+                    .get("mxtoolbox", {})
+                    .get("status", "no_record"),
+                    "mxtoolbox_authorized": item.mxtoolbox_consent,
                     "sample_upload_authorized": item.vt_upload_consent,
                     "url_scan_authorized": item.url_scan_consent,
                     "sample_upload_attempted": provider.get("upload_attempted") is True,

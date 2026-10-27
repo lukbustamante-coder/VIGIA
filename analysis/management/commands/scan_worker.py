@@ -116,6 +116,8 @@ class Command(BaseCommand):
                 command.append("--upload-to-vt")
             if item.ai_header_consent and item.kind == "eml" and settings.AI_ALLOW_HEADER_UPLOAD:
                 command.append("--ai-headers")
+            if item.mxtoolbox_consent and item.kind == "eml" and settings.MXTOOLBOX_ENABLED:
+                command.append("--mxtoolbox")
         scanner_env = {
             name: value
             for name, value in os.environ.items()
@@ -147,6 +149,15 @@ class Command(BaseCommand):
         scanner_env["AI_ALLOW_HEADER_UPLOAD"] = (
             "true" if settings.AI_ALLOW_HEADER_UPLOAD else "false"
         )
+        mxtoolbox_enabled = (
+            not polling
+            and item.kind == "eml"
+            and item.mxtoolbox_consent
+            and settings.MXTOOLBOX_ENABLED
+        )
+        scanner_env["MXTOOLBOX_ENABLED"] = "true" if mxtoolbox_enabled else "false"
+        if mxtoolbox_enabled:
+            scanner_env["MXTOOLBOX_API_KEY"] = settings.MXTOOLBOX_API_KEY
         scanner_env["VT_ALLOW_URL_SUBMISSION"] = (
             "true" if settings.VT_ALLOW_URL_SUBMISSION else "false"
         )
@@ -166,7 +177,7 @@ class Command(BaseCommand):
                 cwd=settings.BASE_DIR,
                 capture_output=True,
                 text=True,
-                timeout=90,
+                timeout=150 if mxtoolbox_enabled and not polling else 90,
                 check=True,
                 preexec_fn=limits,
                 env=scanner_env,
@@ -180,6 +191,16 @@ class Command(BaseCommand):
             }:
                 raise ValueError("Invalid scanner result")
             provider = result["details"].get("providers", {}).get("virustotal", {})
+            if not polling and any(
+                check.get("request_attempted")
+                for check in result["details"]
+                .get("providers", {})
+                .get("mxtoolbox", {})
+                .get("checks", [])
+            ):
+                AuditEvent.objects.create(
+                    actor=item.owner, action="mxtoolbox_attempt", submission_id=item.id
+                )
             if not polling and item.kind == "url":
                 if provider.get("query_attempted"):
                     AuditEvent.objects.create(

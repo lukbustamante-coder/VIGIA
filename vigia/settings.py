@@ -111,6 +111,8 @@ AI_API_KEY = os.getenv("AI_API_KEY", "")
 AI_MODEL = os.getenv("AI_MODEL", "gpt-4.1-mini")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "openai")
 AI_ALLOW_HEADER_UPLOAD = os.getenv("AI_ALLOW_HEADER_UPLOAD", "false").lower() == "true"
+MXTOOLBOX_ENABLED = os.getenv("MXTOOLBOX_ENABLED", "false").lower() == "true"
+MXTOOLBOX_API_KEY = os.getenv("MXTOOLBOX_API_KEY", "")
 
 FILE_UPLOAD_HANDLERS = [
     "analysis.upload_handlers.BoundedUploadHandler",
