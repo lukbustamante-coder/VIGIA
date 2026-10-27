@@ -113,6 +113,8 @@ def test_isolated_cookie_allows_signed_login_despite_other_django_cookie(client,
             "iat": int(time.time()),
             "exp": int(time.time()) + 300,
             "nonce": params["nonce"][0],
+            "given_name": "María José",
+            "family_name": "Pérez Soto",
         }
         token = jwt.encode({"alg": "RS256", "kid": "session-test"}, claims, key)
         with (
@@ -126,6 +128,8 @@ def test_isolated_cookie_allows_signed_login_despite_other_django_cookie(client,
             callback = {"state": params["state"][0], "code": "test-code"}
             assert client.get("/auth/callback/", callback).status_code == 302
             assert "_auth_user_id" in client.session
+            assert client.session["oidc_display_name"] == "María José Pérez Soto"
+            assert "María José Pérez Soto" in client.get("/").content.decode()
             # A stale refresh must not consume a second token or log out the successful login.
             assert client.get("/auth/callback/", callback).status_code == 400
             assert "_auth_user_id" in client.session

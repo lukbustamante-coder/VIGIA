@@ -18,6 +18,22 @@ from .models import AuditEvent
 logger = logging.getLogger(__name__)
 
 
+def profile_text(value, limit=150):
+    # Optional profile claims are display text, never an identity or authorization source.
+    return " ".join(value.split())[:limit] if isinstance(value, str) else ""
+
+
+def sync_profile(user, claims):
+    first = profile_text(claims.get("given_name"))
+    last = profile_text(claims.get("family_name"))
+    if not first and not last:
+        first = profile_text(claims.get("name"))
+    user.first_name = first
+    user.last_name = last
+    user.save(update_fields=["first_name", "last_name"])
+    return user.get_full_name() or profile_text(claims.get("preferred_username"))
+
+
 def log_oidc_failure(stage, error):
     # OAuth exception strings may contain token responses, credentials or request URLs.
     # Log only the Python exception class and a small allowlist of protocol error codes.
@@ -135,14 +151,15 @@ def callback(request):
         roles = claims.get("resource_access", {}).get(settings.OIDC_CLIENT_ID, {}).get("roles", [])
         if not isinstance(roles, list) or any(not isinstance(role, str) for role in roles):
             raise ValueError("Roles inválidos")
-        login(request, user)
-        request.session["roles"] = roles
         import time
 
         remaining = int(claims["exp"]) - int(time.time())
         if remaining <= 0:
-            logout(request)
             raise ValueError("Token caducado")
+        display_name = sync_profile(user, claims)
+        login(request, user)
+        request.session["roles"] = roles
+        request.session["oidc_display_name"] = display_name
         request.session.set_expiry(min(1800, remaining))
         request.session.pop("force_reauthentication", None)
         request.session.pop("oidc_logout_state", None)

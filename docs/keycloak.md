@@ -25,6 +25,10 @@ La sesión local no recibe backchannel logout ni eventos de revocación inmediat
 
 ## Diagnóstico de inicio de sesión
 
+La barra superior muestra el perfil del ID token validado: `given_name` y `family_name`, o `name` si faltan ambos. Si no hay nombre, usa `preferred_username`; si tampoco está presente, muestra «Sesión SSO». Los nombres se sincronizan en cada ingreso; las sesiones anteriores deben cerrar y volver a ingresar para actualizarlos. El nombre no determina la identidad interna ni los permisos: siguen dependiendo de `iss`/`sub` y los roles del cliente.
+
+Si sigue apareciendo «Sesión SSO», el administrador de Keycloak debe revisar que el cliente tenga asignado el client scope `profile`, que sus mappers incluyan los datos de nombre en el **ID token** y que el usuario tenga completos nombre y apellido. VIGIA ya solicita `openid profile email`. No es necesario compartir ni registrar el token para comprobar la configuración.
+
 Para comprobar un archivo editado ejecuta `uv run python -m py_compile analysis/auth.py` y, con las variables cargadas, `uv run python manage.py check`. Un `TabError` o `IndentationError` impide arrancar Python; es independiente de las credenciales de Keycloak. Usa cuatro espacios por nivel y no mezcles tabulaciones.
 
 Si el proveedor acepta las credenciales pero VIGIA rechaza el retorno, consulta la línea `Fallo OIDC (callback): tipo=... codigo=...` en la terminal del servidor. `invalid_client` apunta a la configuración/autenticación del cliente; `invalid_grant` puede deberse al código de autorización, callback o PKCE. Las clases de error de validación identifican problemas de tokens, estado o claims. No sustituyas los controles de firma/issuer/audience/nonce ni imprimas `str(error)`, respuestas completas del proveedor, tokens, secretos, `.env` o URLs con códigos de autorización para diagnosticarlo. Los logs nuevos solo registran la clase de excepción y códigos de protocolo de una lista permitida.
