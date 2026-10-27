@@ -141,6 +141,10 @@ def test_authorized_url_submission_polls_without_fetching_target_or_calling_ai(m
             "analysis.scanner.fetch_analysis",
             return_value={"status": "ok", "stats": {"malicious": 2, "suspicious": 0}},
         ),
+        patch(
+            "analysis.url_inspection.lookup_url",
+            return_value={"status": "ok", "categories": {"Example service": "education"}},
+        ),
         patch("analysis.scanner.requests.post") as repeated,
     ):
         final = poll_virustotal(initial["details"])

@@ -15,7 +15,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .auth import is_admin
 from .forms import FILE_EXTENSIONS, UploadForm, URLAnalysisForm
 from .models import AuditEvent, Submission
-from .presentation import email_explanation, result_summary
+from .presentation import email_explanation, result_summary, url_categorization
 
 LABELS = {
     "pending": "Pendiente",
@@ -186,6 +186,9 @@ def result(request, pk):
         "label": LABELS.get(item.verdict, "No concluyente"),
     }
     explanation = email_explanation(item)
+    categorization = url_categorization(item)
+    if categorization is not None:
+        payload["url_category"] = categorization
     if explanation is not None:
         payload["email_analysis"] = explanation
     if admin:
@@ -202,6 +205,7 @@ def result(request, pk):
             "summary": result_summary(item, admin),
             "module": item.kind,
             "email_analysis": explanation,
+            "url_category": categorization,
         },
     )
 

@@ -600,6 +600,19 @@ def poll_virustotal(details):
         )
         inspector.reputation_available = True
         inspector.providers["virustotal"] = provider
+        if inspector.kind == "url":
+            from .url_inspection import lookup_url
+
+            targets = details.get("iocs", {}).get("urls", [])
+            if targets:
+                # Completed analysis objects lack URL categories. Fetch the URL report once;
+                # this optional enrichment never replaces the completed detection statistics.
+                try:
+                    categorization = lookup_url(targets[0], scan_consent=False)
+                except ValueError:
+                    categorization = {"status": "invalid_response"}
+                provider["categories"] = categorization.get("categories", {})
+                provider["category_lookup_status"] = categorization["status"]
         if inspector.kind in {"eml", "url"}:
             # Preserve the header explanation; no reupload or repeated AI charge while polling VT.
             inspector.providers["ai"] = details.get("providers", {}).get(

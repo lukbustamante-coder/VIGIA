@@ -8,6 +8,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
+from .url_categories import bounded_categories
 from .virustotal import API, STAT_KEYS, _error, valid_analysis_id
 
 
@@ -69,6 +70,7 @@ def lookup_url(value, *, scan_consent=False):
     identifier = base64.urlsafe_b64encode(target.encode()).decode().rstrip("=")
     attempted = False
     submitted = False
+    category_data = {}
     try:
         response = requests.get(
             f"{API}/urls/{identifier}",
@@ -106,6 +108,7 @@ def lookup_url(value, *, scan_consent=False):
         if error:
             return error
         attributes = response.json()["data"]["attributes"]
+        category_data = {"categories": bounded_categories(attributes.get("categories"))}
         stats = attributes["last_analysis_stats"]
         if not isinstance(stats, dict) or any(
             type(stats.get(name, 0)) is not int or not 0 <= stats.get(name, 0) <= 10000
@@ -114,11 +117,12 @@ def lookup_url(value, *, scan_consent=False):
             raise ValueError("Invalid statistics")
         stats = {name: stats.get(name, 0) for name in STAT_KEYS}
         if sum(stats[name] for name in ("malicious", "suspicious", "undetected", "harmless")) == 0:
-            return {"status": "no_results"}
+            return {"status": "no_results", **category_data}
         return {
             "status": "ok",
             "stats": stats,
             "last_analysis_date": attributes.get("last_analysis_date"),
+            **category_data,
         }
     except requests.Timeout:
         status = "timeout"
@@ -126,9 +130,14 @@ def lookup_url(value, *, scan_consent=False):
         status = "invalid_response"
     except requests.RequestException:
         status = "unavailable"
-    except (KeyError, ValueError, TypeError):
+    except (KeyError, ValueError, TypeError, AttributeError):
         status = "invalid_response"
-    return {"status": status, "url_scan_attempted": attempted, "url_submitted": submitted}
+    return {
+        "status": status,
+        "url_scan_attempted": attempted,
+        "url_submitted": submitted,
+        **category_data,
+    }
 
 
 def analyze_url(value, *, scan_consent=False):

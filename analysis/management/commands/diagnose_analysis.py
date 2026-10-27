@@ -35,6 +35,7 @@ class Command(BaseCommand):
                     "status": item.status,
                     "verdict": item.verdict,
                     "virustotal_status": provider.get("status", "no_record"),
+                    "url_category_lookup_status": provider.get("category_lookup_status"),
                     "ai_status": details.get("providers", {})
                     .get("ai", {})
                     .get("status", "no_record"),

@@ -5,6 +5,16 @@ from pathlib import Path
 
 from .ai_reports import clean_report
 from .email_language import explain_content, explain_method, explain_routing
+from .url_categories import public_categories
+
+
+def url_categorization(item):
+    if item.kind != "url":
+        return None
+    if item.status in {"queued", "running", "waiting_vt", "polling_vt"}:
+        return {"status": "pending", "labels": []}
+    providers = item.details.get("providers", {}) if isinstance(item.details, dict) else {}
+    return public_categories(providers.get("virustotal", {}).get("categories"))
 
 
 def email_explanation(item):

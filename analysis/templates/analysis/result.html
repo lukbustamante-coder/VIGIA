@@ -40,7 +40,16 @@
     </section>
 </div>
 
-{% if module == 'url' %}<section class="card"><h2>Qué significa este resultado</h2><p>Se consultan los reportes disponibles de VirusTotal sobre el enlace. VIGIA no abre la página, sigue redirecciones ni descarga su contenido.</p><p>Un enlace puede cambiar después del análisis. La ausencia de detecciones no garantiza que sea seguro. Si te pide credenciales, pagos o información sensible, confirma la solicitud por otro canal.</p></section>{% endif %}
+{% if module == 'url' %}
+<section class="card url-category-card" aria-labelledby="url-category-heading"><h2 id="url-category-heading">Categoría del sitio</h2>
+{% if url_category.labels %}<ul class="category-labels">{% for category in url_category.labels %}<li>{{ category }}</li>{% endfor %}</ul><p class="muted">Categorías reportadas por servicios de clasificación a través de VirusTotal. Pueden diferir entre proveedores y cambiar con el tiempo.</p>
+{% elif url_category.status == 'pending' %}<p>La categoría se consultará cuando termine el análisis.</p>
+{% elif url_category.status == 'unrecognized' %}<p>El reporte contiene categorías que todavía no tienen una equivalencia en esta vista. Los administradores pueden consultar las etiquetas originales.</p>
+{% else %}<p>No hay una categoría disponible en el reporte consultado. No se asigna una categoría solo por el nombre del sitio.</p>{% endif %}
+<p class="muted">La categoría describe el tipo de sitio; no determina si el enlace es seguro o malicioso. Por ejemplo, un sitio educacional también puede estar comprometido.</p>
+{% if admin and result.details.providers.virustotal.categories %}<details class="category-sources"><summary>Clasificación original por proveedor</summary><div class="table-wrap"><table><thead><tr><th>Proveedor</th><th>Categoría reportada</th></tr></thead><tbody>{% for provider, label in result.details.providers.virustotal.categories.items %}<tr><td>{{ provider }}</td><td>{{ label }}</td></tr>{% endfor %}</tbody></table></div></details>{% endif %}
+</section>
+<section class="card"><h2>Qué significa este resultado</h2><p>Se consultan los reportes disponibles de VirusTotal sobre el enlace. VIGIA no abre la página, sigue redirecciones ni descarga su contenido.</p><p>Un enlace puede cambiar después del análisis. La ausencia de detecciones no garantiza que sea seguro. Si te pide credenciales, pagos o información sensible, confirma la solicitud por otro canal.</p></section>{% endif %}
 
 {% if email_analysis %}
 <section class="card email-report" aria-labelledby="email-report-heading">

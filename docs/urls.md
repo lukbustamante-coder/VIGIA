@@ -28,6 +28,16 @@ Las URLs se guardan en la base de datos con los resultados y siguen la retenció
 
 Las URLs no se envían a OpenAI ni Gemini en este módulo. No se ha realizado una integración de navegación ni de IA con el contenido web. Las pruebas de VirusTotal usan respuestas simuladas; para comprobar la cuenta real usa una URL pública que tengas autorización para compartir.
 
+## Categoría del sitio
+
+El resultado incluye una sección independiente **Categoría del sitio** basada en el campo `categories` del objeto URL de VirusTotal. Se traducen etiquetas reconocidas a una taxonomía fija en español: contenido para adultos/pornografía, educación, noticias, redes sociales, compras, juegos, apuestas, tecnología, gobierno, salud, finanzas y otras categorías comunes. No se deduce el contenido por el nombre del dominio ni se solicita una clasificación a la IA.
+
+Si los servicios reportan distintas categorías reconocidas, se muestran todas sin inventar una mayoría ni un porcentaje de confianza. Una etiqueta que no tiene equivalencia queda disponible solo en el detalle original para administradores; la vista de usuario indica que no hay una categoría reconocida cuando corresponde. Si el proveedor no ofrece categorías o no puede consultarse, se informa de su ausencia. La cobertura depende del sitio, del reporte y del acceso de la cuenta: no es una categorización universal ni una clasificación propia del contenido actual.
+
+Esta información es independiente de las estadísticas de detección: una categoría de adultos no convierte por sí sola un sitio en malicioso y una categoría educacional no descarta que esté comprometido. Las etiquetas tampoco aplican bloqueos ni reglas de navegación.
+
+Para URLs con reporte conocido, se obtiene la categoría en la misma consulta. Cuando VirusTotal termina un análisis solicitado, el worker hace una consulta adicional al objeto URL para recuperar las categorías, porque el objeto de análisis no las incluye. Esa lectura consume cuota de la misma cuenta y no vuelve a solicitar un escaneo; sus fallos no cambian el veredicto obtenido de los motores ni provocan reintentos automáticos. Los análisis anteriores no contienen estas etiquetas: vuelve a consultar la URL para guardarlas. No se requiere otra clave, activar IA ni migraciones adicionales para la categorización.
+
 ## Actualizar en Ubuntu
 
 Detén el servidor y el worker antes de actualizar:
