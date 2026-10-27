@@ -112,6 +112,8 @@ class Command(BaseCommand):
             command.extend([str(path), item.filename, item.kind])
             if item.vt_upload_consent and settings.VT_ALLOW_SAMPLE_UPLOAD:
                 command.append("--upload-to-vt")
+            if item.ai_header_consent and item.kind == "eml" and settings.AI_ALLOW_HEADER_UPLOAD:
+                command.append("--ai-headers")
         scanner_env = {
             name: value
             for name, value in os.environ.items()
@@ -131,10 +133,17 @@ class Command(BaseCommand):
                 "VT_API_KEY",
                 "AI_API_KEY",
                 "AI_MODEL",
+                "AI_PROVIDER",
+                "OPENAI_API_KEY",
+                "GEMINI_API_KEY",
+                "GEMINI_MODEL",
             }
         }
         scanner_env["VT_ALLOW_SAMPLE_UPLOAD"] = (
             "true" if settings.VT_ALLOW_SAMPLE_UPLOAD else "false"
+        )
+        scanner_env["AI_ALLOW_HEADER_UPLOAD"] = (
+            "true" if settings.AI_ALLOW_HEADER_UPLOAD else "false"
         )
         try:
             process = subprocess.run(
@@ -157,6 +166,12 @@ class Command(BaseCommand):
             }:
                 raise ValueError("Invalid scanner result")
             provider = result["details"].get("providers", {}).get("virustotal", {})
+            if not polling and result["details"].get("providers", {}).get("ai", {}).get(
+                "header_upload_attempted"
+            ):
+                AuditEvent.objects.create(
+                    actor=item.owner, action="ai_headers_attempt", submission_id=item.id
+                )
             if not polling and provider.get("upload_attempted"):
                 AuditEvent.objects.create(
                     actor=item.owner, action="vt_upload_attempt", submission_id=item.id

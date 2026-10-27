@@ -3,6 +3,48 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .ai_reports import clean_report
+
+
+def email_explanation(item):
+    if item.kind != "eml" or item.status != "done":
+        return None
+    details = item.details if isinstance(item.details, dict) else {}
+    headers = details.get("email_headers") or {}
+    declared = headers.get("declared_authentication", {})
+    methods = []
+    allowed = {"pass", "fail", "softfail", "neutral", "none", "temperror", "permerror"}
+    for method in ("spf", "dkim", "dmarc"):
+        values = declared.get(method, [])
+        values = [value.upper() for value in values if isinstance(value, str) and value in allowed]
+        methods.append(
+            {"name": method.upper(), "declared": ", ".join(values) if values else "No consta"}
+        )
+    providers = details.get("providers", {})
+    ai = providers.get("ai", {})
+    report = None
+    if ai.get("status") == "ok" and ai.get("version") == 1:
+        try:
+            report = clean_report(ai.get("user_report"))
+        except ValueError:
+            pass
+    if report:
+        # The final recommendation always comes from the current technical verdict,
+        # including when VirusTotal completed after the AI header explanation.
+        report["recommendation"] = {
+            "malicious": "No abras enlaces ni adjuntos. Reporta el mensaje a tu equipo de seguridad.",
+            "suspicious": "Evita interactuar con el mensaje hasta que tu equipo de seguridad lo revise.",
+            "inconclusive": "No se pudo completar la evaluación. Solicita revisión a tu equipo de seguridad.",
+            "no_indicators": "No se detectaron indicios en las comprobaciones realizadas. Verifica las solicitudes sensibles por un canal independiente; este resultado no garantiza seguridad.",
+        }.get(item.verdict, "Consulta a tu equipo de seguridad.")
+    return {
+        "methods": methods,
+        "report": report,
+        "available": report is not None,
+        "scope": "headers" if ai.get("data_scope") == "headers" else "technical_findings",
+    }
+
+
 STATUS_LABELS = {
     "queued": "En cola",
     "running": "Analizando",

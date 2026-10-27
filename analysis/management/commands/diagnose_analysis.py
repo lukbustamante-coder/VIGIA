@@ -35,6 +35,10 @@ class Command(BaseCommand):
                     "status": item.status,
                     "verdict": item.verdict,
                     "virustotal_status": provider.get("status", "no_record"),
+                    "ai_status": details.get("providers", {})
+                    .get("ai", {})
+                    .get("status", "no_record"),
+                    "ai_header_upload_authorized": item.ai_header_consent,
                     "sample_upload_authorized": item.vt_upload_consent,
                     "sample_upload_attempted": provider.get("upload_attempted") is True,
                     "sample_uploaded": provider.get("sample_uploaded"),

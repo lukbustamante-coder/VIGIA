@@ -14,7 +14,7 @@ from django.views.decorators.http import require_GET, require_POST
 from .auth import is_admin
 from .forms import FILE_EXTENSIONS, UploadForm
 from .models import AuditEvent, Submission
-from .presentation import result_summary
+from .presentation import email_explanation, result_summary
 
 LABELS = {
     "pending": "Pendiente",
@@ -86,6 +86,7 @@ def upload(request):
                 kind=form.cleaned_data["kind"],
                 filename=Path(file.name).name[:255],
                 vt_upload_consent=bool(form.cleaned_data.get("vt_upload_consent")),
+                ai_header_consent=bool(form.cleaned_data.get("ai_header_consent")),
             )
             path = settings.PRIVATE_STORAGE / str(item.id)
             with open(path, "xb") as target:
@@ -100,6 +101,10 @@ def upload(request):
             if item.vt_upload_consent:
                 AuditEvent.objects.create(
                     actor=request.user, action="vt_upload_authorized", submission_id=item.id
+                )
+            if item.ai_header_consent:
+                AuditEvent.objects.create(
+                    actor=request.user, action="ai_headers_authorized", submission_id=item.id
                 )
         return redirect("result", pk=item.id)
     except Exception:
@@ -122,6 +127,9 @@ def result(request, pk):
         "verdict": item.verdict,
         "label": LABELS.get(item.verdict, "No concluyente"),
     }
+    explanation = email_explanation(item)
+    if explanation is not None:
+        payload["email_analysis"] = explanation
     if admin:
         payload["details"] = item.details
         AuditEvent.objects.create(actor=request.user, action="view_ioc", submission_id=item.id)
@@ -135,6 +143,7 @@ def result(request, pk):
             "admin": admin,
             "summary": result_summary(item, admin),
             "module": item.kind,
+            "email_analysis": explanation,
         },
     )
 

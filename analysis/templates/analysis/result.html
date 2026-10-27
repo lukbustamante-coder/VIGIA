@@ -40,6 +40,19 @@
     </section>
 </div>
 
+{% if email_analysis %}
+<section class="card email-report" aria-labelledby="email-report-heading">
+    <div class="section-title"><h2 id="email-report-heading">Análisis de encabezados del correo</h2><span class="tag">AUTENTICACIÓN NO VERIFICADA</span></div>
+    <p>Los siguientes resultados son declaraciones presentes en el EML. VIGIA no ha validado la cadena de servidores ni ha verificado SPF, DKIM o DMARC de forma independiente.</p>
+    <dl class="engine-stats">{% for method in email_analysis.methods %}<div><dt>{{ method.name }} declarado</dt><dd class="auth-declared">{{ method.declared }}</dd></div>{% endfor %}</dl>
+    {% if email_analysis.available %}
+    <h3>Explicación asistida por IA</h3>
+    <p class="muted">{% if email_analysis.scope == 'headers' %}Basada en encabezados enviados con autorización.{% else %}Basada solo en hallazgos técnicos; no se enviaron los encabezados completos.{% endif %} No incluye análisis del cuerpo ni de los adjuntos por la IA. Puede contener errores y no sustituye el veredicto técnico.</p>
+    <dl class="email-report-sections"><div><dt>Resumen</dt><dd>{{ email_analysis.report.summary }}</dd></div><div><dt>Ruta del mensaje</dt><dd>{{ email_analysis.report.routing }}</dd></div><div><dt>Autenticación declarada</dt><dd>{{ email_analysis.report.authentication }}</dd></div><div><dt>Qué hacer</dt><dd>{{ email_analysis.report.recommendation }}</dd></div></dl>
+    {% else %}<p class="muted">La explicación de IA no está disponible para este análisis. El veredicto técnico sigue disponible arriba.</p>{% endif %}
+</section>
+{% endif %}
+
 {% if admin %}
 <section class="card reputation-card" aria-labelledby="reputation-heading">
     <div class="section-title"><h2 id="reputation-heading">Reputación en VirusTotal</h2><span class="tag">SOLO ADMINISTRADORES</span></div>
@@ -51,6 +64,7 @@
 </section>
 {% if result.details %}
 <section class="admin-evidence"><details class="card evidence-card" open><summary>Hallazgos de VIGIA</summary><ul>{% for finding in result.details.findings %}<li>{{ finding }}</li>{% empty %}<li>No hay hallazgos locales registrados.</li>{% endfor %}</ul>{% if result.details.coverage.reasons %}<h3>Causas de cobertura incompleta</h3><ul>{% for reason in result.details.coverage.reasons %}<li>{{ reason.message }}</li>{% endfor %}</ul>{% endif %}{% if result.details.error %}<p>No fue posible completar el procesamiento del archivo.</p>{% endif %}{% if result.details.limitations %}<p class="muted">{{ result.details.limitations }}</p>{% endif %}</details>
+{% if result.details.email_headers %}<details class="card evidence-card"><summary>Encabezados observados · Solo administradores</summary><p>No constituyen una cadena de confianza verificada. {% if result.details.email_headers.truncated %}Se alcanzó el límite de encabezados; la vista está truncada.{% endif %}</p>{% for name, values in result.details.email_headers.selected.items %}<h3>{{ name }}</h3><ul>{% for value in values %}<li><code>{{ value }}</code></li>{% empty %}<li>No consta.</li>{% endfor %}</ul>{% endfor %}</details>{% endif %}
 <details class="card evidence-card"><summary>Indicadores de compromiso</summary>{% for category, values in result.details.iocs.items %}<h3>{{ category }}</h3><ul class="ioc-list">{% for value in values %}<li><code>{{ value }}</code></li>{% empty %}<li>Sin indicadores extraídos.</li>{% endfor %}</ul>{% empty %}<p>No hay indicadores registrados.</p>{% endfor %}</details>
 {% if result.details.providers.ai.explanation %}<details class="card evidence-card"><summary>Explicación asistida por IA</summary><p>{{ result.details.providers.ai.explanation }}</p><p class="muted">Texto de apoyo para la investigación; no modifica el veredicto.</p></details>{% endif %}</section>
 {% endif %}

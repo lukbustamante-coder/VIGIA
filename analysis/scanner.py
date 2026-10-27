@@ -18,6 +18,8 @@ import olefile
 import requests
 from defusedxml import ElementTree
 
+from .ai_reports import generate_header_report
+from .email_headers import inspect_headers
 from .pdf_inspection import inspect_pdf
 from .virustotal import PENDING_STATUSES, fetch_analysis, submit_sample
 
@@ -69,6 +71,9 @@ class Inspector:
         self.remaining = MAX_BYTES
         self.entries = 0
         self.providers = {}
+        self.kind = "file"
+        self.email_headers = None
+        self.ai_header_consent = False
 
     def finding(
         self, message, suspicious=False, incomplete=False, reason="local_inspection_limited"
@@ -116,6 +121,8 @@ class Inspector:
                 pass
 
     def inspect(self, data, filename, kind="file", depth=0):
+        if depth == 0:
+            self.kind = kind
         self.iocs["sha256"].add(hashlib.sha256(data).hexdigest())
         if EICAR in data:
             self.malicious = True
@@ -283,6 +290,8 @@ class Inspector:
 
     def email(self, data, depth):
         message = BytesParser(policy=policy.default).parsebytes(data)
+        if depth == 0:
+            self.email_headers = inspect_headers(message)
         if not any(message.get(name) for name in ("From", "To", "Subject", "Date", "Message-ID")):
             self.finding("No se reconoce una estructura EML válida.", suspicious=True)
         if message.defects:
@@ -431,6 +440,36 @@ class Inspector:
             )
 
     def ai(self):
+        if self.kind == "eml":
+            header_upload = (
+                self.ai_header_consent
+                and os.getenv("AI_ALLOW_HEADER_UPLOAD", "false").lower() == "true"
+            )
+            headers = self.email_headers or {}
+            evidence = {
+                "findings": self.findings,
+                "verdict": "pending"
+                if self.providers.get("virustotal", {}).get("status") in PENDING_STATUSES
+                else self.result()["verdict"],
+                "incomplete": self.incomplete,
+                "authentication_independently_verified": False,
+                "received_count": headers.get("received_count", 0),
+                "declared_authentication": headers.get("declared_authentication", {}),
+                "headers_truncated": headers.get("truncated", False),
+            }
+            if header_upload:
+                evidence["untrusted_headers"] = headers.get("selected", {})
+            self.providers["ai"] = {
+                **generate_header_report(evidence),
+                "data_scope": "headers" if header_upload else "technical_findings",
+            }
+            self.providers["ai"]["header_upload_attempted"] = (
+                header_upload and self.providers["ai"].get("request_sent") is True
+            )
+            return
+        if os.getenv("AI_PROVIDER", "openai").lower() != "openai":
+            self.providers["ai"] = {"status": "not_applicable"}
+            return
         key = os.getenv("AI_API_KEY", "")
         if not key:
             self.providers["ai"] = {"status": "not_configured"}
@@ -488,16 +527,19 @@ class Inspector:
                     "reasons": self.coverage_reasons,
                 },
                 "providers": self.providers,
+                "module": self.kind,
+                "email_headers": self.email_headers,
                 "limitations": "Análisis estático sin ejecución ni sandbox antivirus. No demuestra inocuidad.",
             },
         }
 
 
-def analyze(path, filename, kind, *, upload_consent=False):
+def analyze(path, filename, kind, *, upload_consent=False, ai_header_consent=False):
     data = Path(path).read_bytes()
     if len(data) > MAX_BYTES:
         raise ValueError("Archivo demasiado grande")
     inspector = Inspector()
+    inspector.ai_header_consent = ai_header_consent
     inspector.inspect(data, filename, kind)
     local = {
         "malicious": inspector.malicious,
@@ -513,7 +555,10 @@ def analyze(path, filename, kind, *, upload_consent=False):
     )
     provider = inspector.providers.get("virustotal", {})
     if provider.get("analysis_id") and provider.get("status") in PENDING_STATUSES:
-        inspector.providers["ai"] = {"status": "deferred"}
+        if kind == "eml":
+            inspector.ai()
+        else:
+            inspector.providers["ai"] = {"status": "deferred"}
     else:
         inspector.ai()
     result = inspector.result()
@@ -528,6 +573,8 @@ def analyze(path, filename, kind, *, upload_consent=False):
 def poll_virustotal(details):
     """Resume the original local assessment without rereading or resending the sample."""
     inspector = Inspector()
+    inspector.kind = details.get("module", "file")
+    inspector.email_headers = details.get("email_headers")
     local = details["local_assessment"]
     inspector.malicious = local["malicious"] is True
     inspector.suspicious = local["suspicious"] is True
@@ -549,13 +596,19 @@ def poll_virustotal(details):
         )
         inspector.reputation_available = True
         inspector.providers["virustotal"] = provider
-        inspector.ai()
+        if inspector.kind == "eml":
+            # Preserve the header explanation; no reupload or repeated AI charge while polling VT.
+            inspector.providers["ai"] = details.get("providers", {}).get(
+                "ai", {"status": "not_configured"}
+            )
+        else:
+            inspector.ai()
     else:
         inspector.reputation_issue(
             provider["status"], "El análisis externo no ha entregado un reporte completo."
         )
         inspector.providers["virustotal"] = provider
-        inspector.providers["ai"] = {"status": "deferred"}
+        inspector.providers["ai"] = details.get("providers", {}).get("ai", {"status": "deferred"})
     result = inspector.result()
     result["details"]["file"] = details.get("file", {})
     result["details"]["local_assessment"] = local
@@ -567,5 +620,11 @@ if __name__ == "__main__":
         print(json.dumps(poll_virustotal(json.loads(sys.stdin.read(1024 * 1024)))))
     else:
         print(
-            json.dumps(analyze(*sys.argv[1:4], upload_consent=sys.argv[4:] == ["--upload-to-vt"]))
+            json.dumps(
+                analyze(
+                    *sys.argv[1:4],
+                    upload_consent="--upload-to-vt" in sys.argv[4:],
+                    ai_header_consent="--ai-headers" in sys.argv[4:],
+                )
+            )
         )

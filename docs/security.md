@@ -33,7 +33,9 @@ No hay un veredicto de «seguro». La reputación externa puede ser obsoleta o e
 
 ## IA
 
-La IA solo explica mensajes generados por detectores. No recibe archivos ni texto libre de la muestra y no cambia clasificación, ejecuta herramientas o consulta URL. Su texto sigue siendo no confiable y se escapa al renderizar. Revisa contractualmente privacidad, residencia y retención del proveedor antes de habilitarlo.
+La IA no decide la clasificación, ejecuta herramientas ni consulta URL. En correos explica hallazgos técnicos y, solo si están activadas la política `AI_ALLOW_HEADER_UPLOAD` y la autorización de esa carga, recibe encabezados seleccionados del EML (con límites de tamaño). Estos pueden contener datos personales e instrucciones maliciosas: se transmiten como datos no confiables separados de las instrucciones del sistema. El cuerpo, los adjuntos y las firmas DKIM completas no se envían. Los encabezados detallados se conservan en la evidencia de administración y siguen la retención del análisis.
+
+OpenAI y Gemini se llaman en endpoints HTTPS fijos, sin redirecciones; las claves se envían en encabezados HTTP, nunca en URLs. La respuesta del modelo se valida como JSON con campos y longitudes acotados, se filtran indicadores literales comunes del informe público y se escapa como texto al renderizar. La recomendación al usuario se deriva del veredicto técnico actual. Estas medidas no eliminan las alucinaciones ni toda forma de prompt injection o divulgación semántica: el informe se etiqueta como asistido por IA y no es evidencia de autenticidad. Los campos `Authentication-Results`, `Received-SPF` y `Received` de un EML no son una cadena de confianza; un PASS declarado nunca se trata como validación independiente. Revisa privacidad, residencia y retención del proveedor antes de habilitar encabezados externos.
 
 ## Pendientes antes de producción
 
