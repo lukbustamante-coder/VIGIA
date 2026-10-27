@@ -16,6 +16,28 @@ from .models import AuditEvent
 logger = logging.getLogger(__name__)
 
 
+def log_oidc_failure(stage, error):
+    # OAuth exception strings may contain token responses, credentials or request URLs.
+    # Log only the Python exception class and a small allowlist of protocol error codes.
+    known_codes = {
+        "invalid_client",
+        "invalid_grant",
+        "invalid_request",
+        "unauthorized_client",
+        "access_denied",
+        "invalid_scope",
+        "server_error",
+        "temporarily_unavailable",
+        "login_required",
+        "interaction_required",
+        "consent_required",
+    }
+    code = getattr(error, "error", None)
+    if not isinstance(code, str) or code not in known_codes:
+        code = "no_especificado"
+    logger.warning("Fallo OIDC (%s): tipo=%s codigo=%s", stage, type(error).__name__, code)
+
+
 def oidc_client():
     issuer = settings.OIDC_ISSUER
     if not issuer or (urlsplit(issuer).scheme != "https" and not settings.DEBUG):
@@ -44,7 +66,8 @@ def sign_in(request):
     try:
         options = {"prompt": "login"} if request.session.get("force_reauthentication") else {}
         return oidc_client().authorize_redirect(request, settings.OIDC_REDIRECT_URI, **options)
-    except Exception:
+    except Exception as error:
+        log_oidc_failure("inicio", error)
         return HttpResponse("SSO no disponible. Contacta al administrador.", status=503)
 
 
@@ -88,7 +111,8 @@ def callback(request):
         # Never retain access/refresh/ID tokens in the session or database.
         AuditEvent.objects.create(actor=user, action="login")
         return redirect("dashboard")
-    except Exception:
+    except Exception as error:
+        log_oidc_failure("callback", error)
         logout(request)
         request.session["force_reauthentication"] = True
         return HttpResponseBadRequest("No se pudo validar el inicio de sesión.")
