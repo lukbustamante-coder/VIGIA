@@ -1,5 +1,22 @@
-{% extends 'analysis/base.html' %}{% block content %}
+{% extends 'analysis/base.html' %}{% load static %}
+{% block extra_head %}<script src="{% static 'analysis/upload.js' %}" defer></script>{% endblock %}
+{% block content %}
 <div class="module-heading"><p class="eyebrow">{% if admin %}CONSOLA DE ADMINISTRACIÓN{% else %}TU ESPACIO DE ANÁLISIS{% endif %}</p><h1>{% if module == 'eml' %}Análisis de correo{% else %}Análisis de archivos{% endif %}</h1><p class="intro">{% if module == 'eml' %}Revisa un correo y sus adjuntos antes de abrir sus enlaces o documentos.{% else %}Revisa documentos, comprimidos e imágenes para detectar posibles amenazas.{% endif %}</p></div>
-<section class="card"><h2>{% if module == 'eml' %}Analizar un correo{% else %}Analizar un archivo{% endif %}</h2><form method="post" action="{% url 'upload' %}" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<p class="muted">{% if module == 'eml' %}Solo archivos .EML. Máximo 20 MB. Se inspeccionan el mensaje, los enlaces y los adjuntos.{% else %}Máximo 20 MB. Formatos: PDF, ZIP, Word, Excel, PowerPoint, OpenDocument, TXT, CSV, RTF, PNG y JPEG.{% endif %}</p><button>Enviar a analizar →</button></form></section>
+<section class="card upload-card"><h2>{% if module == 'eml' %}Analizar un correo{% else %}Analizar un archivo{% endif %}</h2>
+<form class="upload-form" method="post" action="{% url 'upload' %}" enctype="multipart/form-data" data-upload-form>{% csrf_token %}{{ form.kind }}{{ form.non_field_errors }}
+<div class="file-dropzone" data-dropzone>
+    <span class="dropzone-icon" aria-hidden="true">↑</span>
+    <h3>{% if module == 'eml' %}Arrastra tu correo aquí{% else %}Arrastra tu archivo aquí{% endif %}</h3>
+    <p id="file-drop-help">También puedes soltarlo sobre esta página o elegirlo desde tu equipo.</p>
+    <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+    {{ form.file.errors }}{{ form.file }}
+    <p class="upload-selection" data-upload-selection aria-live="polite">Ningún archivo seleccionado.</p>
+</div>
+<p class="upload-feedback" data-upload-feedback role="status" aria-live="polite"></p>
+<p class="muted">{% if module == 'eml' %}Solo archivos .EML. Máximo 20 MB. Se inspeccionan el mensaje, los enlaces y los adjuntos.{% else %}Máximo 20 MB. Formatos: PDF, ZIP, Word, Excel, PowerPoint, OpenDocument, TXT, CSV, RTF, PNG y JPEG.{% endif %} Un archivo por análisis.</p>
+{% for field in form %}{% if field.name != 'kind' and field.name != 'file' %}<div class="upload-consent">{{ field.errors }}<label>{{ field }}<span>{{ field.label }}</span></label>{% if field.help_text %}<p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}</div>{% endif %}{% endfor %}
+<button>Enviar a analizar →</button>
+</form></section>
+<div class="file-drop-overlay" data-drop-overlay hidden aria-hidden="true"><div><span aria-hidden="true">↑</span><strong>Suelta el archivo para seleccionarlo</strong><p>Después podrás enviarlo a analizar.</p></div></div>
 <section><div class="section-title"><h2>{% if admin %}Historial de{% else %}Tus{% endif %} {% if module == 'eml' %}correos{% else %}archivos{% endif %}</h2><span class="tag">ÚLTIMOS 50</span></div><div class="table-wrap"><table><thead><tr><th>{% if module == 'eml' %}Correo{% else %}Archivo{% endif %}</th><th>Fecha</th><th>Estado</th><th><span class="sr-only">Resultado</span></th></tr></thead><tbody>{% for item in submissions %}<tr><td>{{ item.filename }}</td><td>{{ item.created_at|date:'d/m/Y H:i' }}</td><td>{{ item.status }}</td><td><a href="{% url 'result' item.id %}">Ver resultado →</a></td></tr>{% empty %}<tr><td colspan="4">{% if module == 'eml' %}Aún no hay correos analizados.{% else %}Aún no hay archivos analizados.{% endif %}</td></tr>{% endfor %}</tbody></table></div></section>
 {% endblock %}
