@@ -69,6 +69,9 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 LOGIN_URL = "/auth/login/"
+# Cookies are scoped to hosts, not ports: avoid collisions with other Django apps on localhost.
+SESSION_COOKIE_NAME = "vigia_sessionid"
+CSRF_COOKIE_NAME = "vigia_csrftoken"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = not DEBUG

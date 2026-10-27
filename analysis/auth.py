@@ -3,12 +3,14 @@ import logging
 import secrets
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
+from authlib.integrations.base_client.errors import MismatchingStateError
 from authlib.integrations.django_client import OAuth
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.db import DatabaseError
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import AuditEvent
@@ -31,11 +33,37 @@ def log_oidc_failure(stage, error):
         "login_required",
         "interaction_required",
         "consent_required",
+        "mismatching_state",
     }
     code = getattr(error, "error", None)
     if not isinstance(code, str) or code not in known_codes:
         code = "no_especificado"
     logger.warning("Fallo OIDC (%s): tipo=%s codigo=%s", stage, type(error).__name__, code)
+
+
+def login_start_url():
+    target = urlsplit(settings.OIDC_REDIRECT_URI)
+    if (
+        target.scheme not in {"http", "https"}
+        or not target.hostname
+        or target.username
+        or target.password
+        or (target.scheme != "https" and not settings.DEBUG)
+    ):
+        raise ValueError("Configura un callback OIDC válido.")
+    return urlunsplit((target.scheme, target.netloc, reverse("login"), "", ""))
+
+
+def same_origin(first, second):
+    def origin(value):
+        parts = urlsplit(value)
+        return (
+            parts.scheme,
+            parts.hostname,
+            parts.port or (443 if parts.scheme == "https" else 80),
+        )
+
+    return origin(first) == origin(second)
 
 
 def oidc_client():
@@ -64,6 +92,10 @@ def oidc_client():
 @require_GET
 def sign_in(request):
     try:
+        canonical_url = login_start_url()
+        if not same_origin(request.build_absolute_uri("/"), canonical_url):
+            # Establish the cookie on the callback's host before generating state/nonce/PKCE.
+            return redirect(canonical_url)
         options = {"prompt": "login"} if request.session.get("force_reauthentication") else {}
         return oidc_client().authorize_redirect(request, settings.OIDC_REDIRECT_URI, **options)
     except Exception as error:
@@ -73,6 +105,12 @@ def sign_in(request):
 
 @require_GET
 def callback(request):
+    state = request.GET.get("state", "")
+    stored_state = (
+        bool(request.session.get(f"_state_keycloak_{state}")) if len(state) <= 512 else False
+    )
+    cookie_received = bool(request.COOKIES.get(settings.SESSION_COOKIE_NAME))
+    session_loaded = bool(request.session.session_key)
     try:
         token = oidc_client().authorize_access_token(
             request,
@@ -111,6 +149,20 @@ def callback(request):
         # Never retain access/refresh/ID tokens in the session or database.
         AuditEvent.objects.create(actor=user, action="login")
         return redirect("dashboard")
+    except MismatchingStateError as error:
+        log_oidc_failure("callback", error)
+        logger.warning(
+            "Estado OIDC no recuperado: cookie_recibida=%s sesion_cargada=%s estado_guardado=%s",
+            cookie_received,
+            session_loaded,
+            stored_state,
+        )
+        # Reject this callback without flushing other valid pending logins or an existing login.
+        try:
+            restart_url = login_start_url()
+        except ValueError:
+            restart_url = reverse("login")
+        return render(request, "analysis/login_error.html", {"login_url": restart_url}, status=400)
     except Exception as error:
         log_oidc_failure("callback", error)
         logout(request)

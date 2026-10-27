@@ -1,0 +1,10 @@
+{% extends 'analysis/base.html' %}
+{% block content %}
+<p class="eyebrow">INICIO DE SESIÓN</p>
+<section class="card">
+    <h1>No pudimos recuperar tu sesión</h1>
+    <p>La solicitud de acceso expiró o el navegador no devolvió la sesión con la que se inició. Tu contraseña no se comprobó en este paso.</p>
+    <p>Inicia el acceso nuevamente desde el botón de abajo, mantén la misma pestaña y permite las cookies de VIGIA. Evita recargar la dirección de retorno del SSO.</p>
+    <a class="button" href="{{ login_url }}">Reiniciar inicio de sesión →</a>
+</section>
+{% endblock %}

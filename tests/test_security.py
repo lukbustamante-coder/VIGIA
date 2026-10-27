@@ -28,6 +28,7 @@ def configuration(settings, tmp_path):
     settings.OIDC_ISSUER = "https://sso.example.org/realms/vigia"
     settings.OIDC_CLIENT_ID = "vigia"
     settings.OIDC_CLIENT_SECRET = "test-only-client-secret"
+    settings.OIDC_REDIRECT_URI = "http://testserver/auth/callback/"
 
 
 @pytest.fixture
@@ -69,12 +70,12 @@ def test_csrf_and_method_enforced(user):
 @pytest.mark.parametrize(
     "origin, expected", [("http://testserver", 302), ("https://other.example", 403), ("null", 403)]
 )
-def test_upload_csrf_origin_validation(user, origin, expected):
+def test_upload_csrf_origin_validation(user, origin, expected, settings):
     client = Client(enforce_csrf_checks=True)
     client.force_login(user)
     response = client.get("/")
     assert response["Referrer-Policy"] == "same-origin"
-    token = client.cookies["csrftoken"].value
+    token = client.cookies[settings.CSRF_COOKIE_NAME].value
     response = client.post(
         "/upload/",
         {

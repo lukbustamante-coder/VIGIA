@@ -9,6 +9,7 @@ from authlib.integrations.base_client.errors import OAuthError
 def config(settings):
     settings.DEBUG = True
     settings.SECURE_SSL_REDIRECT = False
+    settings.OIDC_REDIRECT_URI = "http://testserver/auth/callback/"
 
 
 @pytest.mark.django_db

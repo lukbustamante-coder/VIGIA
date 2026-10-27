@@ -69,7 +69,7 @@ def test_logout_ends_local_session_before_contacting_sso_and_retains_no_tokens(
     assert client.get("/upload/").status_code == 302
 
 
-def test_logout_requires_post_and_csrf(user, metadata):
+def test_logout_requires_post_and_csrf(user, metadata, settings):
     client = Client(enforce_csrf_checks=True)
     client.force_login(user)
     with patch("analysis.auth.oidc_client") as app:
@@ -78,7 +78,7 @@ def test_logout_requires_post_and_csrf(user, metadata):
         app.assert_not_called()
     assert "_auth_user_id" in client.session
     client.get("/")
-    token = client.cookies["csrftoken"].value
+    token = client.cookies[settings.CSRF_COOKIE_NAME].value
     with patch("analysis.auth.oidc_client") as factory:
         factory.return_value.load_server_metadata.return_value = metadata
         assert (
@@ -138,8 +138,8 @@ def test_idp_failure_keeps_local_logout_and_forces_next_authentication(client, u
     assert "_auth_user_id" not in client.session
     with patch("analysis.auth.oidc_client") as factory:
         factory.return_value.authorize_redirect.side_effect = RuntimeError("unavailable")
-        assert client.get("/auth/login/").status_code == 503
-        assert client.get("/auth/login/").status_code == 503
+        assert client.get("/auth/login/", HTTP_HOST="localhost:8000").status_code == 503
+        assert client.get("/auth/login/", HTTP_HOST="localhost:8000").status_code == 503
         assert all(
             call.kwargs == {"prompt": "login"}
             for call in factory.return_value.authorize_redirect.call_args_list
@@ -185,7 +185,7 @@ def test_next_login_has_real_oidc_prompt_login_parameter(client, user, metadata)
         patch.object(app, "load_server_metadata", return_value=metadata),
     ):
         client.post("/auth/logout/")
-        response = client.get("/auth/login/")
+        response = client.get("/auth/login/", HTTP_HOST="localhost:8000")
     query = parse_qs(urlsplit(response.url).query)
     assert query["prompt"] == ["login"]
     assert query["code_challenge_method"] == ["S256"]
