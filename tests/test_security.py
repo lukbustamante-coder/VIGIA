@@ -271,6 +271,10 @@ def test_ai_does_not_send_iocs_or_overrule_verdict(monkeypatch):
 def test_signed_oidc_tokens_are_validated(client, settings, change):
     key = RSAKey.generate_key(parameters={"kid": "test"})
     app = oidc_client()
+    session = client.session
+    session["force_reauthentication"] = True
+    session["oidc_logout_state"] = "previous-logout"
+    session.save()
     metadata = {
         "issuer": settings.OIDC_ISSUER,
         "authorization_endpoint": settings.OIDC_ISSUER + "/protocol/openid-connect/auth",
@@ -288,6 +292,7 @@ def test_signed_oidc_tokens_are_validated(client, settings, change):
 
         query = parse_qs(urlsplit(response.url).query)
         assert query["code_challenge_method"] == ["S256"]
+        assert query["prompt"] == ["login"]
         claims = {
             "iss": settings.OIDC_ISSUER,
             "sub": "keycloak-user",
@@ -316,6 +321,8 @@ def test_signed_oidc_tokens_are_validated(client, settings, change):
         assert client.session["roles"] == ["vigia-admin"]
         assert client.session.get_expiry_age() <= 300
         assert "access_token" not in str(dict(client.session))
+        assert "force_reauthentication" not in client.session
+        assert "oidc_logout_state" not in client.session
 
 
 def test_oidc_callback_requires_state(client):

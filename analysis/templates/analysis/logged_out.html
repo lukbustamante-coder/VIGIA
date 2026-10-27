@@ -1,0 +1,14 @@
+{% extends 'analysis/base.html' %}
+{% block content %}
+<p class="eyebrow">ACCESO A VIGIA</p>
+<section class="card">
+    <h1>Sesión local cerrada</h1>
+    {% if sso_unavailable %}
+    <p>No se pudo iniciar el cierre de sesión del proveedor SSO. Tu acceso a VIGIA ya terminó y el próximo ingreso solicitará autenticación.</p>
+    {% else %}
+    <p>Tu sesión en VIGIA está cerrada. Puedes volver a iniciar sesión cuando lo necesites.</p>
+    {% endif %}
+    <a class="button" href="{% url 'login' %}">Volver a iniciar sesión →</a>
+    <a href="{% url 'dashboard' %}">Volver al inicio</a>
+</section>
+{% endblock %}

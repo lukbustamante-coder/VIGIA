@@ -98,6 +98,8 @@ OIDC_ISSUER = os.getenv("OIDC_ISSUER", "").rstrip("/")
 OIDC_CLIENT_ID = os.getenv("OIDC_CLIENT_ID", "vigia")
 OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", "")
 OIDC_REDIRECT_URI = os.getenv("OIDC_REDIRECT_URI", "http://localhost:8000/auth/callback/")
+# Empty derives the fixed logout callback from OIDC_REDIRECT_URI's origin.
+OIDC_POST_LOGOUT_REDIRECT_URI = os.getenv("OIDC_POST_LOGOUT_REDIRECT_URI", "")
 OIDC_ADMIN_ROLE = os.getenv("OIDC_ADMIN_ROLE", "vigia-admin")
 VT_API_KEY = os.getenv("VT_API_KEY", "")
 VT_ALLOW_SAMPLE_UPLOAD = os.getenv("VT_ALLOW_SAMPLE_UPLOAD", "false").lower() == "true"
