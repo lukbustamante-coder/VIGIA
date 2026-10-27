@@ -4,6 +4,8 @@ from analysis import auth, views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("analisis/correos/", views.dashboard, {"module": "eml"}, name="email_analysis"),
+    path("analisis/archivos/", views.dashboard, {"module": "file"}, name="file_analysis"),
     path("auth/login/", auth.sign_in, name="login"),
     path("auth/callback/", auth.callback, name="callback"),
     path("auth/logout/", auth.sign_out, name="logout"),

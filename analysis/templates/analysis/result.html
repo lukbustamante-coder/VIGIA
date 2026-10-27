@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<a class="back-link" href="{% url 'dashboard' %}">← Volver a los análisis</a>
+<a class="back-link" href="{% if module == 'eml' %}{% url 'email_analysis' %}{% else %}{% url 'file_analysis' %}{% endif %}">← Volver a los análisis</a>
 <div class="result-heading"><div><p class="eyebrow">RESULTADO DEL ANÁLISIS</p><h1>Resumen de seguridad</h1></div><span class="access-badge">{% if admin %}Vista de administrador{% else %}Tu veredicto{% endif %}</span></div>
 
 <div class="analysis-overview tone-{{ summary.tone }}"{% if summary.pending %} data-analysis-status="{{ result.status }}" data-poll-url="{% url 'result' result.id %}?format=json"{% endif %}>

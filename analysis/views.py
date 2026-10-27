@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -11,7 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .auth import is_admin
-from .forms import UploadForm
+from .forms import FILE_EXTENSIONS, UploadForm
 from .models import AuditEvent, Submission
 from .presentation import result_summary
 
@@ -25,7 +26,7 @@ LABELS = {
 
 
 @require_GET
-def dashboard(request):
+def dashboard(request, module="eml"):
     if not request.user.is_authenticated:
         return render(request, "analysis/welcome.html")
     submissions = (
@@ -33,12 +34,19 @@ def dashboard(request):
         if is_admin(request)
         else Submission.objects.filter(owner=request.user)
     )
+    form = UploadForm(initial={"kind": module})
+    form.fields["kind"].widget = forms.HiddenInput()
+    form.fields["file"].label = "Correo EML" if module == "eml" else "Archivo"
+    form.fields["file"].widget.attrs["accept"] = (
+        ".eml" if module == "eml" else ",".join(f".{ext}" for ext in sorted(FILE_EXTENSIONS))
+    )
     return render(
         request,
         "analysis/dashboard.html",
         {
-            "form": UploadForm(),
-            "submissions": submissions.order_by("-created_at")[:50],
+            "form": form,
+            "module": module,
+            "submissions": submissions.filter(kind=module).order_by("-created_at")[:50],
             "admin": is_admin(request),
         },
     )
@@ -49,7 +57,13 @@ def dashboard(request):
 def upload(request):
     form = UploadForm(request.POST, request.FILES)
     if not form.is_valid():
-        return render(request, "analysis/upload_error.html", {"form": form}, status=400)
+        module = "file" if request.POST.get("kind") == "file" else "eml"
+        return render(
+            request,
+            "analysis/upload_error.html",
+            {"form": form, "module": module, "admin": is_admin(request)},
+            status=400,
+        )
     settings.PRIVATE_STORAGE.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = None
     try:
@@ -120,6 +134,7 @@ def result(request, pk):
             "result": payload,
             "admin": admin,
             "summary": result_summary(item, admin),
+            "module": item.kind,
         },
     )
 

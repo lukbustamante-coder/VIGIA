@@ -1,3 +1,11 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIGIA · Análisis de amenazas</title>{% load static %}<link rel="stylesheet" href="{% static 'analysis/style.css' %}">{% block extra_head %}{% endblock %}</head>
-<body><header><a class="brand" href="/">◈ VIGIA</a><span>Centro de análisis de amenazas</span>{% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary">Cerrar sesión</button></form>{% endif %}</header><main>{% block content %}{% endblock %}</main><footer>Análisis defensivo · Inspección local sin ejecución · Acceso restringido</footer></body></html>
+<body><header class="site-header">
+<a class="brand" href="{% url 'dashboard' %}"><span class="brand-symbol" aria-hidden="true">◈</span><span>VIGIA<small>Centro de análisis de amenazas</small></span></a>
+{% if user.is_authenticated %}
+<nav class="module-nav" aria-label="Módulos de análisis">
+<a href="{% url 'email_analysis' %}"{% if module == 'eml' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">✉</span> Análisis de correo</a>
+<a href="{% url 'file_analysis' %}"{% if module == 'file' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Análisis de archivos</a>
+</nav>
+<div class="account-menu"><span class="account-label">{{ user.get_full_name|default:'Sesión SSO' }}<small>{% if admin %}Administrador{% else %}Usuario{% endif %}</small></span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary">Cerrar sesión</button></form></div>
+{% endif %}</header><main>{% block content %}{% endblock %}</main><footer>Análisis defensivo · Inspección local sin ejecución · Acceso restringido</footer></body></html>
