@@ -10,6 +10,7 @@ import sys
 import zipfile
 from email import policy
 from email.parser import BytesParser
+from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -33,6 +34,20 @@ ODF = {
     "ods": b"application/vnd.oasis.opendocument.spreadsheet",
     "odp": b"application/vnd.oasis.opendocument.presentation",
 }
+
+
+class EmailHTMLInspector(HTMLParser):
+    """Recognize active markup without rendering HTML or fetching resources."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.active = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag in {"script", "iframe"} or any(
+            name in {"onload", "onerror"} for name, _value in attrs
+        ):
+            self.active = True
 
 
 class Inspector:
@@ -278,7 +293,9 @@ class Inspector:
         sender = parseaddr(str(message.get("From", "")))[1].lower()
         reply = parseaddr(str(message.get("Reply-To", "")))[1].lower()
         if sender and reply and sender.rsplit("@", 1)[-1] != reply.rsplit("@", 1)[-1]:
-            self.finding("From y Reply-To tienen dominios diferentes.", suspicious=True)
+            self.finding(
+                "From y Reply-To tienen dominios diferentes; este dato por sí solo no implica suplantación."
+            )
         # Authentication-Results inside an uploaded EML is attacker-controlled.
         self.finding("SPF/DKIM/DMARC no verificados; los encabezados no prueban autenticidad.")
         parts = list(message.walk())
@@ -304,8 +321,19 @@ class Inspector:
                 )
             elif part.get_content_type() in {"text/plain", "text/html"}:
                 self.indicators(content)
-                if re.search(rb"<\s*(script|iframe)|\bon(?:load|error)\s*=", content, re.I):
-                    self.finding("Correo HTML con contenido activo.", suspicious=True)
+                if part.get_content_type() == "text/html":
+                    try:
+                        parser = EmailHTMLInspector()
+                        parser.feed(
+                            content.decode(part.get_content_charset() or "utf-8", errors="replace")
+                        )
+                        parser.close()
+                        if parser.active:
+                            self.finding("Correo HTML con contenido activo.", suspicious=True)
+                    except (LookupError, ValueError, AssertionError):
+                        self.finding(
+                            "HTML del correo no inspeccionado por completo.", incomplete=True
+                        )
             else:
                 self.finding("Parte MIME sin analizador disponible.", incomplete=True)
 
