@@ -108,6 +108,8 @@ class Command(BaseCommand):
         command = [sys.executable, "-m", "analysis.scanner"]
         if polling:
             command.append("--poll-vt")
+        elif item.kind == "url":
+            command.append("--url")
         else:
             command.extend([str(path), item.filename, item.kind])
             if item.vt_upload_consent and settings.VT_ALLOW_SAMPLE_UPLOAD:
@@ -145,10 +147,22 @@ class Command(BaseCommand):
         scanner_env["AI_ALLOW_HEADER_UPLOAD"] = (
             "true" if settings.AI_ALLOW_HEADER_UPLOAD else "false"
         )
+        scanner_env["VT_ALLOW_URL_SUBMISSION"] = (
+            "true" if settings.VT_ALLOW_URL_SUBMISSION else "false"
+        )
+        scanner_input = (
+            json.dumps(item.details)
+            if polling
+            else (
+                json.dumps({"url": item.target_url, "scan_consent": item.url_scan_consent})
+                if item.kind == "url"
+                else None
+            )
+        )
         try:
             process = subprocess.run(
                 command,
-                input=json.dumps(item.details) if polling else None,
+                input=scanner_input,
                 cwd=settings.BASE_DIR,
                 capture_output=True,
                 text=True,
@@ -166,6 +180,15 @@ class Command(BaseCommand):
             }:
                 raise ValueError("Invalid scanner result")
             provider = result["details"].get("providers", {}).get("virustotal", {})
+            if not polling and item.kind == "url":
+                if provider.get("query_attempted"):
+                    AuditEvent.objects.create(
+                        actor=item.owner, action="url_query_attempt", submission_id=item.id
+                    )
+                if provider.get("url_scan_attempted"):
+                    AuditEvent.objects.create(
+                        actor=item.owner, action="url_scan_attempt", submission_id=item.id
+                    )
             if not polling and result["details"].get("providers", {}).get("ai", {}).get(
                 "header_upload_attempted"
             ):
@@ -210,5 +233,5 @@ class Command(BaseCommand):
         except Exception:
             finish_error(item, "scanner_failed_or_timed_out")
         finally:
-            if not polling:
+            if not polling and item.kind != "url":
                 path.unlink(missing_ok=True)

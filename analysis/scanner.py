@@ -600,7 +600,7 @@ def poll_virustotal(details):
         )
         inspector.reputation_available = True
         inspector.providers["virustotal"] = provider
-        if inspector.kind == "eml":
+        if inspector.kind in {"eml", "url"}:
             # Preserve the header explanation; no reupload or repeated AI charge while polling VT.
             inspector.providers["ai"] = details.get("providers", {}).get(
                 "ai", {"status": "not_configured"}
@@ -620,7 +620,16 @@ def poll_virustotal(details):
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] == ["--poll-vt"]:
+    if sys.argv[1:] == ["--url"]:
+        from .url_inspection import analyze_url
+
+        payload = json.loads(sys.stdin.read(16384))
+        print(
+            json.dumps(
+                analyze_url(payload["url"], scan_consent=payload.get("scan_consent") is True)
+            )
+        )
+    elif sys.argv[1:] == ["--poll-vt"]:
         print(json.dumps(poll_virustotal(json.loads(sys.stdin.read(1024 * 1024)))))
     else:
         print(

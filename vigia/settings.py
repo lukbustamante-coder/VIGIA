@@ -106,6 +106,7 @@ OIDC_POST_LOGOUT_REDIRECT_URI = os.getenv("OIDC_POST_LOGOUT_REDIRECT_URI", "")
 OIDC_ADMIN_ROLE = os.getenv("OIDC_ADMIN_ROLE", "vigia-admin")
 VT_API_KEY = os.getenv("VT_API_KEY", "")
 VT_ALLOW_SAMPLE_UPLOAD = os.getenv("VT_ALLOW_SAMPLE_UPLOAD", "false").lower() == "true"
+VT_ALLOW_URL_SUBMISSION = os.getenv("VT_ALLOW_URL_SUBMISSION", "false").lower() == "true"
 AI_API_KEY = os.getenv("AI_API_KEY", "")
 AI_MODEL = os.getenv("AI_MODEL", "gpt-4.1-mini")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "openai")

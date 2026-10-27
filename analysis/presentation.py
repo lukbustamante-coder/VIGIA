@@ -61,6 +61,7 @@ VERDICT_MESSAGES = {
 VT_MESSAGES = {
     "not_configured": "VirusTotal no estaba configurado al realizar este análisis.",
     "unknown_hash": "VirusTotal no tiene un reporte para este hash. El archivo no se ha enviado.",
+    "unknown_url": "VirusTotal no tiene un reporte de esta URL y no se solicitó un análisis nuevo.",
     "unavailable": "No fue posible obtener el reporte de VirusTotal.",
     "empty_report": "El reporte no contiene resultados de motores.",
     "no_results": "VirusTotal no contiene resultados concluidos de motores.",
@@ -110,6 +111,19 @@ def result_summary(item, admin):
             summary["message"] = (
                 "El archivo se envió con tu autorización. Estamos esperando el análisis de VirusTotal; puede tardar varios minutos. Esta página se actualizará automáticamente."
             )
+    if item.kind == "url":
+        summary["message"] = (
+            "La URL espera su turno. El resultado se actualizará automáticamente."
+            if item.status == "queued"
+            else "VirusTotal está procesando la URL autorizada. El resultado se actualizará automáticamente."
+            if pending
+            else {
+                "malicious": "Los motores consultados detectaron contenido malicioso asociado al enlace. Evita abrirlo.",
+                "suspicious": "Se encontraron detecciones sospechosas asociadas al enlace. Consulta a tu equipo de seguridad.",
+                "no_indicators": "No se registraron detecciones en el reporte de reputación consultado. Esto no garantiza que el enlace sea seguro.",
+                "inconclusive": "No se obtuvo un reporte suficiente para evaluar la reputación del enlace.",
+            }.get(item.verdict, "Consulta el resultado con tu equipo de seguridad.")
+        )
     if not admin:
         return summary
 
@@ -123,14 +137,17 @@ def result_summary(item, admin):
     size = file.get("size_bytes")
     summary.update(
         {
-            "filename": item.filename,
-            "file_type": Path(item.filename).suffix.lstrip(".").upper()[:12] or "ARCHIVO",
+            "filename": item.target_url if item.kind == "url" else item.filename,
+            "file_type": "URL"
+            if item.kind == "url"
+            else Path(item.filename).suffix.lstrip(".").upper()[:12] or "ARCHIVO",
             "file_size": size if type(size) is int and size >= 0 else None,
             "file_hash": file.get("sha256", ""),
             "created_at": item.created_at,
             "finished_at": item.finished_at,
             "has_report": False,
             "sample_uploaded": vt.get("sample_uploaded") is True,
+            "url_submitted": vt.get("url_submitted") is True,
             "vt_message": "Consulta pendiente."
             if pending
             else VT_MESSAGES.get(

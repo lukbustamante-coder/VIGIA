@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 {
                     "id": str(item.id),
                     "module": item.kind,
-                    "extension": Path(item.filename).suffix.lower(),
+                    "extension": None if item.kind == "url" else Path(item.filename).suffix.lower(),
                     "status": item.status,
                     "verdict": item.verdict,
                     "virustotal_status": provider.get("status", "no_record"),
@@ -40,6 +40,7 @@ class Command(BaseCommand):
                     .get("status", "no_record"),
                     "ai_header_upload_authorized": item.ai_header_consent,
                     "sample_upload_authorized": item.vt_upload_consent,
+                    "url_scan_authorized": item.url_scan_consent,
                     "sample_upload_attempted": provider.get("upload_attempted") is True,
                     "sample_uploaded": provider.get("sample_uploaded"),
                     "coverage": coverage

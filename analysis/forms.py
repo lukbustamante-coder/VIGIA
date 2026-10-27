@@ -6,6 +6,8 @@ from email.parser import BytesHeaderParser
 from django import forms
 from django.conf import settings
 
+from .url_inspection import normalize_url
+
 FILE_EXTENSIONS = {
     "pdf",
     "zip",
@@ -25,6 +27,47 @@ FILE_EXTENSIONS = {
     "jpg",
     "jpeg",
 }
+
+
+class URLAnalysisForm(forms.Form):
+    url = forms.CharField(
+        label="URL que quieres analizar",
+        max_length=2048,
+        widget=forms.URLInput(
+            attrs={
+                "placeholder": "https://sitio.example/ruta",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            }
+        ),
+        help_text="Solo HTTP o HTTPS. No incluyas contraseñas, tokens ni enlaces de acceso privado.",
+    )
+    vt_url_consent = forms.BooleanField(
+        label="Autorizar la consulta de esta URL en VirusTotal",
+        help_text="La consulta comunica la URL completa a VirusTotal, incluidos los parámetros. No envíes enlaces confidenciales.",
+    )
+    url_scan_consent = forms.BooleanField(
+        required=False,
+        label="Autorizar que VirusTotal analice la URL si no tiene un reporte",
+        help_text="VirusTotal podrá visitar el sitio y compartir los resultados según sus condiciones. Esta autorización es independiente del envío de archivos y correos.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not settings.VT_ALLOW_URL_SUBMISSION:
+            self.fields.pop("url_scan_consent")
+
+    def clean_url(self):
+        try:
+            return normalize_url(self.cleaned_data["url"])
+        except ValueError as error:
+            raise forms.ValidationError(str(error)) from error
+
+    def clean(self):
+        data = super().clean()
+        if self.data.get("url_scan_consent") and not settings.VT_ALLOW_URL_SUBMISSION:
+            raise forms.ValidationError("El envío de URLs para análisis no está habilitado.")
+        return data
 
 
 class UploadForm(forms.Form):

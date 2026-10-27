@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<a class="back-link" href="{% if module == 'eml' %}{% url 'email_analysis' %}{% else %}{% url 'file_analysis' %}{% endif %}">← Volver a los análisis</a>
+<a class="back-link" href="{% if module == 'eml' %}{% url 'email_analysis' %}{% elif module == 'url' %}{% url 'url_analysis' %}{% else %}{% url 'file_analysis' %}{% endif %}">← Volver a los análisis</a>
 <div class="result-heading"><div><p class="eyebrow">RESULTADO DEL ANÁLISIS</p><h1>Resumen de seguridad</h1></div><span class="access-badge">{% if admin %}Vista de administrador{% else %}Tu veredicto{% endif %}</span></div>
 
 <div class="analysis-overview tone-{{ summary.tone }}"{% if summary.pending %} data-analysis-status="{{ result.status }}" data-poll-url="{% url 'result' result.id %}?format=json"{% endif %}>
@@ -28,17 +28,19 @@
         <div class="report-body">
             <p class="verdict-message">{{ summary.message }}</p>
             {% if admin %}
-            <div class="file-identity"><span class="file-icon" aria-hidden="true">{{ summary.file_type }}</span><div><h2>{{ summary.filename }}</h2><p class="file-hash">{% if summary.file_hash %}<span>SHA-256</span> <code>{{ summary.file_hash }}</code>{% else %}Hash del archivo original no disponible en este reporte.{% endif %}</p></div></div>
+            <div class="file-identity"><span class="file-icon" aria-hidden="true">{{ summary.file_type }}</span><div><h2>{{ summary.filename }}</h2>{% if module != 'url' %}<p class="file-hash">{% if summary.file_hash %}<span>SHA-256</span> <code>{{ summary.file_hash }}</code>{% else %}Hash del archivo original no disponible en este reporte.{% endif %}</p>{% endif %}</div></div>
             {% timezone "America/Santiago" %}
-            <dl class="file-metadata"><div><dt>Tamaño</dt><dd>{% if summary.file_size != None %}{{ summary.file_size|filesizeformat }}{% else %}No disponible{% endif %}</dd></div><div><dt>Recibido</dt><dd>{{ summary.created_at|date:'d/m/Y H:i T' }}</dd></div><div><dt>Procesado</dt><dd>{% if summary.finished_at %}{{ summary.finished_at|date:'d/m/Y H:i T' }}{% else %}Pendiente{% endif %}</dd></div></dl>
+            <dl class="file-metadata">{% if module != 'url' %}<div><dt>Tamaño</dt><dd>{% if summary.file_size != None %}{{ summary.file_size|filesizeformat }}{% else %}No disponible{% endif %}</dd></div>{% endif %}<div><dt>Recibido</dt><dd>{{ summary.created_at|date:'d/m/Y H:i T' }}</dd></div><div><dt>Procesado</dt><dd>{% if summary.finished_at %}{{ summary.finished_at|date:'d/m/Y H:i T' }}{% else %}Pendiente{% endif %}</dd></div></dl>
             {% endtimezone %}
             {% else %}
-            <p class="verdict-note">{% if summary.pending %}Puedes mantener esta página abierta mientras se procesa el archivo.{% else %}Si necesitas ayuda con este resultado, contacta a tu equipo de seguridad.{% endif %}</p>
+            <p class="verdict-note">{% if summary.pending %}Puedes mantener esta página abierta mientras se completa el análisis.{% else %}Si necesitas ayuda con este resultado, contacta a tu equipo de seguridad.{% endif %}</p>
             {% endif %}
             {% if summary.pending %}<div class="pending-footer"><span class="activity-indicator" aria-hidden="true"></span><span>Actualización automática activada</span><a href="">Actualizar ahora</a></div>{% endif %}
         </div>
     </section>
 </div>
+
+{% if module == 'url' %}<section class="card"><h2>Qué significa este resultado</h2><p>Se consultan los reportes disponibles de VirusTotal sobre el enlace. VIGIA no abre la página, sigue redirecciones ni descarga su contenido.</p><p>Un enlace puede cambiar después del análisis. La ausencia de detecciones no garantiza que sea seguro. Si te pide credenciales, pagos o información sensible, confirma la solicitud por otro canal.</p></section>{% endif %}
 
 {% if email_analysis %}
 <section class="card email-report" aria-labelledby="email-report-heading">
@@ -65,7 +67,7 @@
     {% if summary.has_report %}
     <p class="reputation-description"><strong>{{ summary.malicious }} de {{ summary.total }} motores</strong> reportan contenido malicioso. Esta cifra corresponde al reporte de VirusTotal, no al conjunto de hallazgos de VIGIA.</p>
     <dl class="engine-stats"><div class="stat-malicious"><dt>Maliciosos</dt><dd>{{ summary.malicious }}</dd></div><div class="stat-suspicious"><dt>Sospechosos</dt><dd>{{ summary.suspicious }}</dd></div><div><dt>Sin detección reportada</dt><dd>{{ summary.unflagged }}</dd></div><div><dt>Sin respuesta o no compatibles</dt><dd>{{ summary.not_covered }}</dd></div></dl>
-    {% timezone "America/Santiago" %}<p class="muted">{% if summary.vt_date %}Fecha del reporte de VirusTotal: {{ summary.vt_date|date:'d/m/Y H:i T' }}.{% else %}La fecha del reporte de VirusTotal no está disponible.{% endif %} {% if summary.sample_uploaded %}Reporte de una muestra enviada con autorización.{% else %}Reporte consultado por hash; no se envió el archivo.{% endif %}</p>{% endtimezone %}
+    {% timezone "America/Santiago" %}<p class="muted">{% if summary.vt_date %}Fecha del reporte de VirusTotal: {{ summary.vt_date|date:'d/m/Y H:i T' }}.{% else %}La fecha del reporte de VirusTotal no está disponible.{% endif %} {% if module == 'url' %}{% if summary.url_submitted %}Reporte de una URL enviada para análisis con autorización.{% else %}Reporte de reputación consultado por URL.{% endif %}{% elif summary.sample_uploaded %}Reporte de una muestra enviada con autorización.{% else %}Reporte consultado por hash; no se envió el archivo.{% endif %}</p>{% endtimezone %}
     {% else %}<div class="empty-reputation"><span aria-hidden="true">ⓘ</span><p>{{ summary.vt_message }} No se muestra una puntuación sin datos de motores.</p></div>{% endif %}
 </section>
 {% if result.details %}

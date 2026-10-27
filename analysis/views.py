@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django import forms
 from django.conf import settings
@@ -12,7 +13,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .auth import is_admin
-from .forms import FILE_EXTENSIONS, UploadForm
+from .forms import FILE_EXTENSIONS, UploadForm, URLAnalysisForm
 from .models import AuditEvent, Submission
 from .presentation import email_explanation, result_summary
 
@@ -25,6 +26,20 @@ LABELS = {
 }
 
 
+def quota_exceeded(user):
+    # Caller holds a transaction; serialize checks per user on PostgreSQL.
+    from django.contrib.auth import get_user_model
+
+    get_user_model().objects.select_for_update().get(pk=user.pk)
+    recent = Submission.objects.filter(
+        owner=user, created_at__gte=timezone.now() - timedelta(hours=1)
+    ).count()
+    pending = Submission.objects.filter(
+        status__in=["queued", "running", "waiting_vt", "polling_vt"]
+    ).count()
+    return recent >= 20 or pending >= 200
+
+
 @require_GET
 def dashboard(request, module="eml"):
     if not request.user.is_authenticated:
@@ -34,6 +49,17 @@ def dashboard(request, module="eml"):
         if is_admin(request)
         else Submission.objects.filter(owner=request.user)
     )
+    if module == "url":
+        return render(
+            request,
+            "analysis/url_dashboard.html",
+            {
+                "form": URLAnalysisForm(),
+                "module": "url",
+                "admin": is_admin(request),
+                "submissions": submissions.filter(kind="url").order_by("-created_at")[:50],
+            },
+        )
     form = UploadForm(initial={"kind": module})
     form.fields["kind"].widget = forms.HiddenInput()
     form.fields["file"].label = "Correo EML" if module == "eml" else "Archivo"
@@ -68,17 +94,7 @@ def upload(request):
     path = None
     try:
         with transaction.atomic():
-            # Per-user lock serializes quota checks on PostgreSQL.
-            from django.contrib.auth import get_user_model
-
-            get_user_model().objects.select_for_update().get(pk=request.user.pk)
-            recent = Submission.objects.filter(
-                owner=request.user, created_at__gte=timezone.now() - timedelta(hours=1)
-            ).count()
-            pending = Submission.objects.filter(
-                status__in=["queued", "running", "waiting_vt", "polling_vt"]
-            ).count()
-            if recent >= 20 or pending >= 200:
+            if quota_exceeded(request.user):
                 return JsonResponse({"error": "Límite temporal de análisis alcanzado."}, status=429)
             file = form.cleaned_data["file"]
             item = Submission.objects.create(
@@ -111,6 +127,48 @@ def upload(request):
         if path:
             path.unlink(missing_ok=True)
         return JsonResponse({"error": "No se pudo guardar el archivo."}, status=503)
+
+
+@login_required
+@require_POST
+def submit_url(request):
+    form = URLAnalysisForm(request.POST)
+    if not form.is_valid():
+        submissions = (
+            Submission.objects.all()
+            if is_admin(request)
+            else Submission.objects.filter(owner=request.user)
+        )
+        return render(
+            request,
+            "analysis/url_dashboard.html",
+            {
+                "form": form,
+                "module": "url",
+                "admin": is_admin(request),
+                "submissions": submissions.filter(kind="url").order_by("-created_at")[:50],
+            },
+            status=400,
+        )
+    with transaction.atomic():
+        if quota_exceeded(request.user):
+            return JsonResponse({"error": "Límite temporal de análisis alcanzado."}, status=429)
+        target = form.cleaned_data["url"]
+        item = Submission.objects.create(
+            owner=request.user,
+            kind="url",
+            target_url=target,
+            filename=f"URL · {urlsplit(target).hostname}"[:255],
+            url_scan_consent=bool(form.cleaned_data.get("url_scan_consent")),
+        )
+        AuditEvent.objects.create(
+            actor=request.user, action="url_query_authorized", submission_id=item.id
+        )
+        if item.url_scan_consent:
+            AuditEvent.objects.create(
+                actor=request.user, action="url_scan_authorized", submission_id=item.id
+            )
+    return redirect("result", pk=item.id)
 
 
 @login_required

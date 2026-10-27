@@ -6,6 +6,7 @@
 <nav class="module-nav" aria-label="Módulos de análisis">
 <a href="{% url 'email_analysis' %}"{% if module == 'eml' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">✉</span> Análisis de correo</a>
 <a href="{% url 'file_analysis' %}"{% if module == 'file' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Análisis de archivos</a>
+<a href="{% url 'url_analysis' %}"{% if module == 'url' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">↗</span> Análisis de URL</a>
 </nav>
 <div class="account-menu"><span class="account-label">{% if request.session.oidc_display_name %}{{ request.session.oidc_display_name }}{% elif user.get_full_name %}{{ user.get_full_name }}{% else %}Sesión SSO{% endif %}<small>{% if admin %}Administrador{% else %}Usuario{% endif %}</small></span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary">Cerrar sesión</button></form></div>
 {% endif %}</header><main>{% block content %}{% endblock %}</main><footer>Análisis defensivo · Inspección local sin ejecución · Acceso restringido</footer></body></html>
