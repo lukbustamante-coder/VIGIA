@@ -42,14 +42,20 @@
 
 {% if email_analysis %}
 <section class="card email-report" aria-labelledby="email-report-heading">
-    <div class="section-title"><h2 id="email-report-heading">Análisis de encabezados del correo</h2><span class="tag">AUTENTICACIÓN NO VERIFICADA</span></div>
-    <p>Los siguientes resultados son declaraciones presentes en el EML. VIGIA no ha validado la cadena de servidores ni ha verificado SPF, DKIM o DMARC de forma independiente.</p>
-    <dl class="engine-stats">{% for method in email_analysis.methods %}<div><dt>{{ method.name }} declarado</dt><dd class="auth-declared">{{ method.declared }}</dd></div>{% endfor %}</dl>
+    <div class="section-title"><h2 id="email-report-heading">Qué revisamos en este correo</h2><span class="tag">AUTENTICACIÓN NO VERIFICADA</span></div>
+    <p class="email-report-intro">Un correo guarda registros técnicos sobre su entrega y su remitente. A continuación explicamos qué significa cada comprobación y qué información aparece en el mensaje que subiste.</p>
+    <p class="muted">Los resultados declarados pertenecen al archivo recibido: VIGIA no ha confirmado quién escribió esos registros ni ha repetido las comprobaciones de autenticidad.</p>
+    <ul class="email-checks">
+        <li><h3>Ruta del mensaje y servidores de entrega</h3><p>{{ email_analysis.routing_explanation }}</p></li>
+        {% for method in email_analysis.methods %}<li><h3>{{ method.title }}</h3><p>{{ method.description }}</p><p class="email-check-result"><strong>Resultado en este correo: {{ method.result_label }}.</strong> {{ method.interpretation }}</p></li>{% endfor %}
+        <li><h3>Enlaces, contenido y archivos adjuntos</h3><p>{{ email_analysis.content_explanation }}</p></li>
+    </ul>
+    <div class="email-recommendation"><h3>Qué te recomendamos hacer</h3><p>{{ email_analysis.recommendation }}</p></div>
     {% if email_analysis.available %}
-    <h3>Explicación asistida por IA</h3>
+    <details class="email-ai-comment"><summary>Comentario adicional asistido por IA</summary>
     <p class="muted">{% if email_analysis.scope == 'headers' %}Basada en encabezados enviados con autorización.{% else %}Basada solo en hallazgos técnicos; no se enviaron los encabezados completos.{% endif %} No incluye análisis del cuerpo ni de los adjuntos por la IA. Puede contener errores y no sustituye el veredicto técnico.</p>
-    <dl class="email-report-sections"><div><dt>Resumen</dt><dd>{{ email_analysis.report.summary }}</dd></div><div><dt>Ruta del mensaje</dt><dd>{{ email_analysis.report.routing }}</dd></div><div><dt>Autenticación declarada</dt><dd>{{ email_analysis.report.authentication }}</dd></div><div><dt>Qué hacer</dt><dd>{{ email_analysis.report.recommendation }}</dd></div></dl>
-    {% else %}<p class="muted">La explicación de IA no está disponible para este análisis. El veredicto técnico sigue disponible arriba.</p>{% endif %}
+    <dl class="email-report-sections"><div><dt>Resumen</dt><dd>{{ email_analysis.report.summary }}</dd></div><div><dt>Ruta del mensaje</dt><dd>{{ email_analysis.report.routing }}</dd></div><div><dt>Autenticación declarada</dt><dd>{{ email_analysis.report.authentication }}</dd></div></dl></details>
+    {% else %}<p class="muted">No se obtuvo un comentario adicional de IA. La interpretación de los registros y la recomendación anterior siguen disponibles.</p>{% endif %}
 </section>
 {% endif %}
 

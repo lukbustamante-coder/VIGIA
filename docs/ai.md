@@ -4,6 +4,8 @@ El módulo de correo extrae encabezados de transmisión, remitente, destinatario
 
 El propietario recibe un resumen de la ruta declarada, limitaciones de autenticación y una recomendación basada en el veredicto técnico. Los administradores conservan los encabezados e IOC detallados. El modelo no puede cambiar el veredicto, crear permisos, visitar enlaces ni ejecutar herramientas. Su texto puede contener errores y se identifica como explicación asistida por IA.
 
+El informe principal explica en lenguaje claro la ruta del mensaje, qué significan SPF, DKIM y DMARC, qué resultado declara cada mecanismo y los límites de la revisión de enlaces, contenido y adjuntos. Se genera a partir de la evidencia guardada, incluso cuando no hay respuesta de IA; el comentario de IA es un complemento desplegable. Se distingue entre PASS, FAIL, SOFTFAIL, errores, ausencia de datos y varios resultados declarados. La explicación no inventa etapas de entrega ni cantidades de adjuntos en reportes antiguos que no conservan esos datos. Los nuevos análisis registran la cantidad de partes con nombre de archivo; ese recuento no prueba que todos sus contenidos se hayan podido inspeccionar.
+
 ## Elegir proveedor
 
 Edita `.env` localmente con `nano .env`; no compartas sus valores. Solo se consulta el proveedor seleccionado, no ambos. Se requiere una clave de API con acceso y cuota al modelo elegido; una suscripción a la aplicación de chat no implica acceso a su API. Los nombres de modelo son configurables y dependen de la disponibilidad de la cuenta.

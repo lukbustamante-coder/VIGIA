@@ -308,6 +308,10 @@ class Inspector:
         # Authentication-Results inside an uploaded EML is attacker-controlled.
         self.finding("SPF/DKIM/DMARC no verificados; los encabezados no prueban autenticidad.")
         parts = list(message.walk())
+        if depth == 0 and len(parts) <= MAX_ENTRIES:
+            self.email_headers["attachment_count"] = sum(
+                bool(part.get_filename()) for part in parts if not part.is_multipart()
+            )
         if len(parts) > MAX_ENTRIES:
             self.finding("Demasiadas partes MIME.", incomplete=True)
             return

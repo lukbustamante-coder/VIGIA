@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .ai_reports import clean_report
+from .email_language import explain_content, explain_method, explain_routing
 
 
 def email_explanation(item):
@@ -13,13 +14,8 @@ def email_explanation(item):
     headers = details.get("email_headers") or {}
     declared = headers.get("declared_authentication", {})
     methods = []
-    allowed = {"pass", "fail", "softfail", "neutral", "none", "temperror", "permerror"}
     for method in ("spf", "dkim", "dmarc"):
-        values = declared.get(method, [])
-        values = [value.upper() for value in values if isinstance(value, str) and value in allowed]
-        methods.append(
-            {"name": method.upper(), "declared": ", ".join(values) if values else "No consta"}
-        )
+        methods.append(explain_method(method, declared.get(method, [])))
     providers = details.get("providers", {})
     ai = providers.get("ai", {})
     report = None
@@ -28,20 +24,23 @@ def email_explanation(item):
             report = clean_report(ai.get("user_report"))
         except ValueError:
             pass
+    # The recommendation is available even when no AI response could be generated.
+    recommendation = {
+        "malicious": "No abras enlaces ni adjuntos. Reporta el mensaje a tu equipo de seguridad.",
+        "suspicious": "Evita interactuar con el mensaje hasta que tu equipo de seguridad lo revise.",
+        "inconclusive": "No se pudo completar la evaluación. Solicita revisión a tu equipo de seguridad.",
+        "no_indicators": "No se detectaron indicios en las comprobaciones realizadas. Verifica las solicitudes sensibles por un canal independiente; este resultado no garantiza seguridad.",
+    }.get(item.verdict, "Consulta a tu equipo de seguridad.")
     if report:
-        # The final recommendation always comes from the current technical verdict,
-        # including when VirusTotal completed after the AI header explanation.
-        report["recommendation"] = {
-            "malicious": "No abras enlaces ni adjuntos. Reporta el mensaje a tu equipo de seguridad.",
-            "suspicious": "Evita interactuar con el mensaje hasta que tu equipo de seguridad lo revise.",
-            "inconclusive": "No se pudo completar la evaluación. Solicita revisión a tu equipo de seguridad.",
-            "no_indicators": "No se detectaron indicios en las comprobaciones realizadas. Verifica las solicitudes sensibles por un canal independiente; este resultado no garantiza seguridad.",
-        }.get(item.verdict, "Consulta a tu equipo de seguridad.")
+        report["recommendation"] = recommendation
     return {
         "methods": methods,
         "report": report,
         "available": report is not None,
         "scope": "headers" if ai.get("data_scope") == "headers" else "technical_findings",
+        "routing_explanation": explain_routing(headers),
+        "content_explanation": explain_content(details, headers),
+        "recommendation": recommendation,
     }
 
 
