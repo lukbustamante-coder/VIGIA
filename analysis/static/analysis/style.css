@@ -677,24 +677,12 @@ input[type=checkbox]{
   line-height:1.25;
   flex-shrink:0
 }
-.brand-symbol{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:38px;
-  height:42px;
-  background:var(--institution-green);
-  border-radius:12px;
-  color:var(--institution-blue);
-  font-size:27px
-}
-.brand small{
+.brand-logo{
   display:block;
-  font-size:11px;
-  font-weight:400;
-  letter-spacing:0;
-  color:var(--white);
-  margin-top:3px
+  width:252px;
+  height:auto;
+  max-width:100%;
+  object-fit:contain
 }
 .module-nav{
   display:flex;
@@ -797,8 +785,8 @@ input[type=checkbox]{
   .site-header .brand{
     font-size:19px
   }
-  .brand small{
-    font-size:10px
+  .brand-logo{
+    width:234px
   }
   .account-menu{
     margin-left:auto
