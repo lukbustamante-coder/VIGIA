@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIGIA · Análisis de amenazas</title>{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'analysis/favicon.svg' %}"><link rel="stylesheet" href="{% static 'analysis/style.css' %}">{% block extra_head %}{% endblock %}</head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIGIA · Análisis de amenazas</title>{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'analysis/favicon.svg' %}"><link rel="stylesheet" href="{% static 'analysis/style.css' %}?v=compact-logo-1">{% block extra_head %}{% endblock %}</head>
 <body><header class="site-header">
-<a class="brand" href="{% url 'dashboard' %}" aria-label="VIGIA · Inicio"><img class="brand-logo" src="{% static 'analysis/vigia-logo.png' %}" alt="VIGIA · Centro de análisis de amenazas" width="2172" height="724" decoding="async" fetchpriority="high"></a>
+<a class="brand" href="{% url 'dashboard' %}" aria-label="VIGIA · Inicio"><img class="brand-logo" src="{% static 'analysis/vigia-logo.png' %}" alt="VIGIA · Centro de análisis de amenazas" width="192" height="64" decoding="async" fetchpriority="high"></a>
 {% if user.is_authenticated %}
 <nav class="module-nav" aria-label="Módulos de análisis">
 <a href="{% url 'email_analysis' %}"{% if module == 'eml' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">✉</span> Análisis de correo</a>
