@@ -997,6 +997,10 @@ input[type=url]{
   margin-top:0
 }
 .file-dropzone{
+  position:relative;
+  display:block;
+  margin:0;
+  cursor:pointer;
   background:var(--drop-bg);
   border:2px dashed var(--drop-border);
   border-radius:12px;
@@ -1017,41 +1021,45 @@ input[type=url]{
   font-size:30px;
   font-weight:600
 }
-.file-dropzone h3{
-  font-size:22px;
+.file-dropzone .dropzone-title{
+  display:block;
+  font-size:20px;
+  font-weight:650;
+  line-height:1.45;
   letter-spacing:-.4px;
-  margin:6px 0
+  max-width:680px;
+  margin:6px auto 0
 }
-.file-dropzone p{
-  font-size:14px;
-  margin:8px 0 18px
+.file-dropzone:hover,.file-dropzone:active{
+  background:var(--drop-hover);
+  border-color:var(--institution-blue)
 }
-.file-dropzone label{
-  text-align:left;
-  font-size:13px;
-  font-weight:600
+.file-dropzone:focus-within{
+  outline:3px solid var(--institution-blue);
+  outline-offset:4px
 }
-.file-dropzone input[type=file]{
-  background:var(--white);
-  color:var(--text);
-  border-color:var(--input-border);
-  color-scheme:light
-}
-.file-dropzone input[type=file]::file-selector-button{
-  background:var(--institution-blue);
-  color:var(--white);
+.file-dropzone .dropzone-input{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:0;
   border:0;
-  border-radius:5px;
-  padding:9px 13px;
-  margin-right:14px;
-  cursor:pointer;
-  font-weight:600
+  clip:rect(0,0,0,0);
+  clip-path:inset(50%);
+  overflow:hidden;
+  white-space:nowrap
 }
-.file-dropzone .upload-selection{
+.upload-card .upload-selection{
   margin:15px 0 0;
   color:var(--institution-blue);
   font-weight:600;
   overflow-wrap:anywhere
+}
+.upload-selection[hidden]{
+  display:none
 }
 .file-dropzone.is-dragging{
   background:var(--drop-hover);
@@ -1144,16 +1152,8 @@ input[type=url]{
   .file-dropzone{
     padding:22px 14px
   }
-  .file-dropzone h3{
-    font-size:20px
-  }
-  .file-dropzone input[type=file]{
-    font-size:12px;
-    padding:8px
-  }
-  .file-dropzone input[type=file]::file-selector-button{
-    padding:8px;
-    margin-right:8px
+  .file-dropzone .dropzone-title{
+    font-size:18px
   }
   .upload-consent .helptext{
     margin-left:0

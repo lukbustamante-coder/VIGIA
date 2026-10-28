@@ -10,7 +10,7 @@
     const overlay = document.querySelector("[data-drop-overlay]");
     if (!input || !zone || !selection || !feedback || !overlay) return;
 
-    input.setAttribute("aria-describedby", "file-drop-help");
+    input.setAttribute("aria-describedby", "file-upload-help");
     const allowed = (input.accept || "").split(",").map(value => value.trim().toLowerCase());
     let depth = 0;
 
@@ -33,7 +33,8 @@
     function reject(message) {
         input.value = "";
         input.setCustomValidity(message);
-        selection.textContent = "Ningún archivo seleccionado.";
+        selection.textContent = "";
+        selection.hidden = true;
         feedback.textContent = message;
         feedback.classList.add("is-error");
         resetConsent();
@@ -53,7 +54,8 @@
         input.setCustomValidity("");
         const file = input.files[0];
         if (!file) {
-            selection.textContent = "Ningún archivo seleccionado.";
+            selection.textContent = "";
+            selection.hidden = true;
             feedback.textContent = "";
             feedback.classList.remove("is-error");
             return;
@@ -67,6 +69,7 @@
             ? `${(file.size / (1024 * 1024)).toLocaleString("es-CL", {maximumFractionDigits: 1})} MB`
             : `${Math.max(1, Math.ceil(file.size / 1024))} KB`;
         selection.textContent = `${file.name} · ${size}`;
+        selection.hidden = false;
         feedback.textContent = "Archivo seleccionado. Revisa las autorizaciones y pulsa «Enviar a analizar» cuando estés listo.";
         feedback.classList.remove("is-error");
     }

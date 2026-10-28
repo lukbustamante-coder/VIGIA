@@ -72,7 +72,15 @@ class URLAnalysisForm(forms.Form):
 
 class UploadForm(forms.Form):
     kind = forms.ChoiceField(label="Módulo", choices=[("eml", "Correo EML"), ("file", "Archivo")])
-    file = forms.FileField(label="Archivo")
+    file = forms.FileField(
+        label="Archivo",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "dropzone-input",
+                "aria-describedby": "file-upload-help",
+            }
+        ),
+    )
     vt_upload_consent = forms.BooleanField(
         required=False,
         label="Autorizar el envío de este archivo o correo a VirusTotal si no tiene reporte",
