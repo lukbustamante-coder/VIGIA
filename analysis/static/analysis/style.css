@@ -36,6 +36,10 @@
   --warning: #8A5300;
   --success: #326B13;
   --neutral: var(--gray-80);
+  --danger-soft: #FEF3F2;
+  --warning-soft: #FFF6E7;
+  --success-soft: #F1F8E9;
+  --neutral-soft: #F0F1F2;
 }
 *{
   box-sizing:border-box
@@ -1241,3 +1245,27 @@ footer {
     padding-left: 14px;
   }
 }
+
+/* Clickable history verdicts expose the result and preserve access to its detail. */
+.history-result {
+  --result-ink: var(--neutral);
+  --result-bg: var(--neutral-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid currentColor;
+  border-radius: 24px;
+  background: var(--result-bg);
+  color: var(--result-ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-decoration: none;
+}
+.history-result--malicious { --result-ink: var(--danger); --result-bg: var(--danger-soft); }
+.history-result--no_indicators { --result-ink: var(--success); --result-bg: var(--success-soft); }
+.history-result--suspicious { --result-ink: var(--warning); --result-bg: var(--warning-soft); }
+.history-result--pending { --result-ink: var(--institution-blue); --result-bg: var(--surface-blue); }
+.history-result-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
+.history-result:hover { text-decoration: underline; box-shadow: 0 0 0 2px var(--line); }

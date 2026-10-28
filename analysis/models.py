@@ -3,6 +3,8 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from .labels import PENDING_STATUSES, STATUS_LABELS, VERDICT_LABELS
+
 
 class Submission(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -25,6 +27,23 @@ class Submission(models.Model):
     vt_next_poll_at = models.DateTimeField(null=True)
     vt_deadline_at = models.DateTimeField(null=True)
     vt_poll_count = models.PositiveSmallIntegerField(default=0)
+
+    @property
+    def status_label(self):
+        return STATUS_LABELS.get(self.status, "Estado desconocido")
+
+    @property
+    def result_badge(self):
+        if self.status in PENDING_STATUSES:
+            verdict = "pending"
+        elif self.status == "done" and self.verdict in VERDICT_LABELS and self.verdict != "pending":
+            verdict = self.verdict
+        elif self.status == "failed" and self.verdict in {"malicious", "suspicious"}:
+            # Preserve findings from a partial scan, without labeling failed scans as clean.
+            verdict = self.verdict
+        else:
+            verdict = "inconclusive"
+        return {"label": VERDICT_LABELS[verdict], "tone": verdict}
 
 
 class AuditEvent(models.Model):

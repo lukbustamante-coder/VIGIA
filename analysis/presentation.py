@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .ai_reports import clean_report
 from .email_language import explain_content, explain_method, explain_routing
+from .labels import STATUS_LABELS
 from .mxtoolbox import public_summary as public_dns_summary
 from .url_categories import public_categories
 
@@ -56,14 +57,6 @@ def email_explanation(item):
     }
 
 
-STATUS_LABELS = {
-    "queued": "En cola",
-    "running": "Analizando",
-    "done": "Completado",
-    "failed": "No completado",
-    "waiting_vt": "Esperando a VirusTotal",
-    "polling_vt": "Consultando VirusTotal",
-}
 VERDICT_MESSAGES = {
     "malicious": "Se detectaron indicadores de contenido malicioso. Evita abrir el archivo.",
     "suspicious": "Se encontraron señales sospechosas. Consulta a tu equipo de seguridad.",

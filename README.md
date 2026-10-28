@@ -8,6 +8,8 @@ En correo y archivos, el área celeste permite elegir un archivo desde el explor
 
 El diseño compartido utiliza la paleta institucional UTEM: azul `#004EAA`, verde `#78BF26`, blanco y grises del manual. Consulta [los criterios de color y contraste](docs/design.md).
 
+Los historiales muestran estados en español (`done` se presenta como «Listo») y el veredicto como enlace al detalle: rojo para malicioso, verde para ausencia de indicios, gris para no concluyente, ámbar para sospechoso y azul para pendiente. Se aplica también a los registros guardados, sin volver a analizarlos. Los análisis en curso o que no se completaron no se presentan como libres de indicios por un dato provisional.
+
 Los usuarios autenticados consultan el veredicto de sus propias cargas. Los administradores con el rol OIDC de cliente `vigia-admin` consultan todos los análisis, indicadores de compromiso y evidencia. La aplicación no ofrece acceso anónimo a los análisis ni contraseñas locales.
 
 La pantalla de resultados incluye un resumen visual y actualización automática mientras el trabajo está en cola o en ejecución. Los administradores ven un contador circular de motores maliciosos/total según el reporte real de VirusTotal, el desglose de resultados, SHA-256, tamaño y fechas del archivo. El veredicto general también considera los hallazgos locales y puede diferir de la puntuación de VirusTotal. Los usuarios comunes mantienen únicamente el veredicto. Si no hay reporte o falla la consulta, se muestra «Sin puntuación disponible»; no se inventan cifras. El tamaño, hash del original y fecha del reporte se registran en nuevos análisis; los reportes antiguos pueden mostrar datos no disponibles. Las fechas de esta pantalla se presentan en America/Santiago.

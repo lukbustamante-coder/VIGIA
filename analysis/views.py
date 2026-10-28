@@ -15,16 +15,9 @@ from django.views.decorators.http import require_GET, require_POST, require_safe
 
 from .auth import is_admin
 from .forms import FILE_EXTENSIONS, UploadForm, URLAnalysisForm
+from .labels import VERDICT_LABELS
 from .models import AuditEvent, Submission
 from .presentation import email_explanation, result_summary, url_categorization
-
-LABELS = {
-    "pending": "Pendiente",
-    "malicious": "Malicioso",
-    "suspicious": "Sospechoso",
-    "no_indicators": "Sin indicios detectados",
-    "inconclusive": "No concluyente",
-}
 
 
 @require_safe
@@ -194,7 +187,7 @@ def result(request, pk):
         "id": str(item.id),
         "status": item.status,
         "verdict": item.verdict,
-        "label": LABELS.get(item.verdict, "No concluyente"),
+        "label": VERDICT_LABELS.get(item.verdict, "No concluyente"),
     }
     explanation = email_explanation(item)
     categorization = url_categorization(item)

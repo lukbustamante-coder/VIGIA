@@ -1,0 +1,1 @@
+{% with badge=item.result_badge %}<a class="history-result history-result--{{ badge.tone }}" href="{% url 'result' item.id %}" aria-label="Ver detalle del análisis: {{ badge.label }} · {{ item.filename }}"><span class="history-result-dot" aria-hidden="true"></span><span>{{ badge.label }}</span><span aria-hidden="true">→</span></a>{% endwith %}
