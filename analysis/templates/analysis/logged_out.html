@@ -8,7 +8,9 @@
     {% else %}
     <p>Tu sesión en VIGIA está cerrada. Puedes volver a iniciar sesión cuando lo necesites.</p>
     {% endif %}
-    <a class="button" href="{% url 'login' %}">Volver a iniciar sesión →</a>
-    <a href="{% url 'dashboard' %}">Volver al inicio</a>
+    <div class="logout-actions">
+        <a class="button" href="{% url 'login' %}">Volver a iniciar sesión →</a>
+        <a class="button secondary" href="{% url 'dashboard' %}">Volver al inicio</a>
+    </div>
 </section>
 {% endblock %}

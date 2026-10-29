@@ -1264,6 +1264,34 @@ footer {
 .history-result-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
 .history-result:hover { text-decoration: underline; box-shadow: 0 0 0 2px var(--line); }
 
+/* Logout actions keep distinct hit targets on desktop and mobile. */
+.logout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 20px;
+}
+.logout-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border: 1px solid transparent;
+}
+.logout-actions .secondary {
+  color: var(--institution-blue);
+  border-color: var(--institution-blue);
+  background: var(--white);
+}
+.logout-actions .secondary:hover {
+  background: var(--surface-blue);
+}
+@media (max-width:480px) {
+  .logout-actions {
+    flex-direction: column;
+  }
+}
 /* Four modules remain usable without horizontal scrolling. */
 .module-nav {
   flex-wrap: wrap;
