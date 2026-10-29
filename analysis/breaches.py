@@ -15,35 +15,157 @@ PROVIDERS = {
 MAX_RESPONSE_BYTES = 1024 * 1024
 SOURCES = (
     {
+        "id": "xposedornot",
         **PROVIDERS["xposedornot"],
         "description": "Consulta gratuita de correos en filtraciones conocidas. Su API básica funciona sin clave y tiene límites de uso.",
         "mode": "Consulta web y API básica gratuitas",
     },
     {
+        "id": "hibp",
         "name": "Have I Been Pwned",
         "url": "https://haveibeenpwned.com/",
         "description": "Puedes consultar un correo gratuitamente desde su página web. Su API de búsqueda de cuentas requiere una suscripción independiente.",
         "mode": "Consulta web gratuita; API de pago",
     },
     {
+        "id": "hpi",
         "name": "HPI Identity Leak Checker",
         "url": "https://sec.hpi.de/ilc/",
         "description": "Servicio del Hasso Plattner Institute para comprobar exposición de direcciones de correo. Consulta allí sus condiciones y el mecanismo de entrega del resultado.",
         "mode": "Consulta en el sitio del proveedor",
     },
     {
+        "id": "fsecure",
         "name": "F-Secure Identity Theft Checker",
         "url": "https://www.f-secure.com/en/identity-theft-checker",
         "description": "Comprobación de exposición asociada a un correo. El alcance y la información disponible dependen del servicio.",
         "mode": "Consulta en el sitio del proveedor",
     },
     {
+        "id": "malwarebytes",
         "name": "Malwarebytes Digital Footprint",
         "url": "https://www.malwarebytes.com/digital-footprint",
         "description": "Herramienta para revisar exposición de datos personales vinculados a un correo. Revisa sus condiciones antes de introducir datos.",
         "mode": "Consulta en el sitio del proveedor",
     },
 )
+
+CHECK_STATES = {
+    "found": (
+        "danger",
+        "!",
+        "Filtraciones encontradas",
+        "La fuente devolvió registros de exposición para el correo consultado.",
+    ),
+    "no_records": (
+        "success",
+        "✓",
+        "Sin registros",
+        "No hay coincidencias en esta fuente; no garantiza ausencia de filtraciones.",
+    ),
+    "quota_exceeded": (
+        "warning",
+        "!",
+        "Límite de consultas",
+        "La consulta no se completó por un límite de uso.",
+    ),
+    "timeout": (
+        "warning",
+        "!",
+        "Sin respuesta",
+        "El proveedor no respondió dentro del tiempo de espera.",
+    ),
+    "authentication_error": (
+        "neutral",
+        "—",
+        "Error de acceso",
+        "No se pudo acceder a la API configurada.",
+    ),
+    "access_denied": (
+        "neutral",
+        "—",
+        "Acceso no disponible",
+        "El proveedor no permitió completar la consulta.",
+    ),
+    "invalid_response": (
+        "neutral",
+        "—",
+        "Resultado no válido",
+        "La respuesta recibida no permite determinar si existen registros.",
+    ),
+    "not_configured": (
+        "neutral",
+        "—",
+        "No habilitado",
+        "Puedes consultar esta fuente directamente en su sitio.",
+    ),
+    "unavailable": (
+        "neutral",
+        "—",
+        "No se pudo consultar",
+        "No hay un resultado disponible de esta fuente.",
+    ),
+}
+
+
+def source_checks(provider, result=None, *, enabled=True):
+    """Project actual provider outcomes; an external link never constitutes a check."""
+    rows = []
+    completed = 0
+    for source in SOURCES:
+        selected = source["id"] == provider
+        if selected and result is not None:
+            state = result.get("status", "unavailable")
+            tone, symbol, label, detail = CHECK_STATES.get(state, CHECK_STATES["unavailable"])
+            completed += int(state in {"found", "no_records"})
+            count = len(result.get("breaches", [])) if state == "found" else None
+        elif selected and enabled:
+            state = "not_checked"
+            tone, symbol, label, detail = (
+                "pending",
+                "○",
+                "Sin consultar",
+                "Se consultará al enviar el formulario con tu autorización.",
+            )
+            count = None
+        elif source["id"] == "malwarebytes":
+            state = "external_verification"
+            tone, symbol, label, detail = (
+                "warning",
+                "—",
+                "Verificación en Malwarebytes",
+                "Requiere verificar el correo en su sitio. VIGIA no ha solicitado ni validado un código.",
+            )
+            count = None
+        else:
+            state = "manual"
+            tone, symbol, label, detail = (
+                "neutral",
+                "—",
+                "Revisión manual",
+                "No consultado automáticamente. Abre el sitio para realizar su comprobación.",
+            )
+            count = None
+        rows.append(
+            {
+                **source,
+                "state": state,
+                "tone": tone,
+                "symbol": symbol,
+                "label": label,
+                "detail": detail,
+                "count": count,
+                "action": "Abrir y verificar correo"
+                if source["id"] == "malwarebytes"
+                else "Consultar en su sitio",
+            }
+        )
+    return {
+        "rows": rows,
+        "completed": completed,
+        "total": len(rows),
+        "has_result": result is not None,
+    }
 
 
 def lookup_xposedornot(email):

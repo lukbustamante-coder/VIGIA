@@ -62,3 +62,19 @@ Actualiza el repositorio, ejecuta `bash scripts/setup.sh`, carga `.env` y reinic
 - HIBP conserva el límite local de 20 consultas por usuario/hora y 200 globales/hora. Usa `truncateResponse=false` e `includeUnverified=false`. Fallos también consumen una reserva local; no hay reintentos automáticos. Recargar un POST manualmente es una nueva consulta.
 - Los límites, errores HTTP, timeout o respuestas inválidas nunca se convierten en «Sin registros». No se evade un 429 cambiando de IP o de proveedor.
 - No encontrar registros solo describe la base consultada. No garantiza ausencia de filtraciones ni seguridad actual de la cuenta. Una coincidencia puede ser antigua y no demuestra acceso actual ni identifica responsables. Se recomienda cambiar contraseñas reutilizadas, activar segundo factor y revisar accesos desde los sitios oficiales.
+
+## Chequeo por fuente y Malwarebytes
+
+La tabla muestra una fila por fuente, con texto, símbolo y color. Solo el proveedor API seleccionado recibe el correo después de autorizar la consulta. No se realizan nuevas consultas a otros proveedores por mostrar la tabla.
+
+- Rojo: la fuente consultada devolvió registros de exposición.
+- Verde: esa fuente devolvió un resultado sin registros, con la advertencia de cobertura limitada.
+- Ámbar: límite de consultas, falta de respuesta o verificación externa requerida, según el texto de la fila.
+- Gris: revisión manual o resultado no disponible; nunca equivale a ausencia de filtraciones.
+- Azul: la fuente automática está habilitada, pero todavía no se ha enviado la consulta.
+
+El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 5 con resultado automático**; las otras cuatro no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su fila.
+
+El usuario confirmó que solo tiene acceso al formulario web de Malwarebytes. Por tanto, su fila indica **Verificación en Malwarebytes** y ofrece un enlace a su sitio y una guía: introducir allí el mismo correo, recibir el código y validarlo allí. Abrir el enlace no envía el correo, solicita códigos ni cambia la fila a «Sin registros».
+
+No hay campos para ingresar el código en VIGIA ni una verificación simulada. El resultado externo no vuelve a la aplicación ni se almacena como comprobado. Vincular automáticamente solicitud, código y resultado al mismo correo queda pendiente de una API oficial documentada y accesible para ese flujo. No se utiliza el código para iniciar sesión en otro servicio, ni se consultan buzones o endpoints internos no documentados. Los resultados automáticos siguen siendo transitorios y sin historial de direcciones.

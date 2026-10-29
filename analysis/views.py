@@ -19,8 +19,7 @@ from django.views.decorators.http import (
 )
 
 from .auth import is_admin
-from .breaches import PROVIDERS, lookup_account, lookup_xposedornot
-from .breaches import SOURCES as BREACH_SOURCES
+from .breaches import PROVIDERS, lookup_account, lookup_xposedornot, source_checks
 from .breaches import present as present_breach_result
 from .forms import FILE_EXTENSIONS, BreachLookupForm, UploadForm, URLAnalysisForm
 from .labels import VERDICT_LABELS
@@ -60,12 +59,14 @@ def breach_lookup(request):
         provider_name=source["name"] if source else "el proveedor configurado",
     )
     result = None
+    raw_result = None
     status = 200
     if request.method == "POST":
         if not form.is_valid():
             status = 400
         elif not enabled:
-            result = present_breach_result({"status": "not_configured"}, provider=provider)
+            raw_result = {"status": "not_configured"}
+            result = present_breach_result(raw_result, provider=provider)
         else:
             from django.contrib.auth import get_user_model
 
@@ -89,7 +90,8 @@ def breach_lookup(request):
                     # Do not retain the queried address, provider response or breach names.
                     AuditEvent.objects.create(actor=request.user, action=action)
             if limited:
-                result = present_breach_result({"status": "quota_exceeded"}, provider=provider)
+                raw_result = {"status": "quota_exceeded"}
+                result = present_breach_result(raw_result, provider=provider)
                 status = 429
             else:
                 raw_result = (
@@ -109,7 +111,7 @@ def breach_lookup(request):
             "lookup_source": source,
             "is_free_lookup": provider == "xposedornot",
             "lookup_result": result,
-            "breach_sources": BREACH_SOURCES,
+            "source_checks": source_checks(provider, raw_result, enabled=enabled),
         },
         status=status,
     )

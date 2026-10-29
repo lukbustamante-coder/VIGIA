@@ -1342,3 +1342,75 @@ footer {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.breach-checks .section-title {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.breach-checks-head, .breach-source-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, .8fr);
+  gap: 20px;
+  padding: 18px 12px;
+}
+.breach-checks-head {
+  background: var(--surface-blue);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 650;
+}
+.breach-checks-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.breach-source-row {
+  border-bottom: 1px solid var(--line);
+  align-items: start;
+  overflow-wrap: anywhere;
+}
+.breach-source-row h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.breach-source-row p {
+  margin: 8px 0 0;
+}
+.breach-source-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.breach-source-status--danger { color: var(--danger); }
+.breach-source-status--success { color: var(--success); }
+.breach-source-status--warning { color: var(--warning); }
+.breach-source-status--neutral { color: var(--neutral); }
+.breach-source-status--pending { color: var(--institution-blue); }
+.breach-source-link {
+  font-size: 14px;
+}
+.breach-verification {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+.breach-verification summary {
+  cursor: pointer;
+  color: var(--institution-blue);
+  font-weight: 650;
+}
+.breach-verification li {
+  margin-bottom: 10px;
+}
+@media (max-width:700px) {
+  .breach-checks-head { display: none; }
+  .breach-source-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 20px 0;
+  }
+}

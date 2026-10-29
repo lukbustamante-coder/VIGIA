@@ -17,6 +17,7 @@
     {% if lookup_source %}<p class="muted">Fuente de la consulta automática: <a href="{{ lookup_source.url }}" target="_blank" rel="noopener noreferrer">{{ lookup_source.name }}</a>. La cobertura depende de sus registros y no abarca todas las filtraciones.</p>{% endif %}
     {% if is_free_lookup and lookup_enabled %}<p class="muted">Consulta básica gratuita y sin clave. El proveedor limita las búsquedas a 25 por hora y 100 por día por IP; estos límites se comparten entre los usuarios de esta instalación.</p>{% endif %}
 </section>
+
 {% if lookup_result %}
 <section class="card breach-result breach-result-{{ lookup_result.tone }}" aria-labelledby="breach-result-heading" role="status">
     {% if lookup_result.found %}<div class="breach-exposure-alert"><span aria-hidden="true">!</span><strong>Atención: este correo aparece en filtraciones de datos.</strong></div>{% endif %}
@@ -29,9 +30,15 @@
     <p class="muted">{% if lookup_source %}Fuente: <a href="{{ lookup_source.url }}" target="_blank" rel="noopener noreferrer">{{ lookup_source.name }}</a>. {% endif %}Un registro puede corresponder a un incidente antiguo. Esta consulta no identifica al responsable ni confirma acceso actual a tu cuenta.</p>
 </section>
 {% endif %}
-<section aria-labelledby="breach-sources-heading">
-    <div class="section-title"><h2 id="breach-sources-heading">Otras fuentes de consulta</h2></div>
-    <p>Se abren en una pestaña nueva. VIGIA no envía tu correo al abrir estos enlaces; ingrésalo directamente en el sitio que elijas y revisa sus condiciones de privacidad.</p>
-    <div class="breach-sources">{% for source in breach_sources %}<article class="card"><h3>{{ source.name }}</h3><p>{{ source.description }}</p><p class="muted"><small>{{ source.mode }}</small></p><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">Ir a {{ source.name }} ↗</a></article>{% endfor %}</div>
+<section class="card breach-checks" aria-labelledby="breach-checks-heading">
+    <div class="section-title"><h2 id="breach-checks-heading">Chequeo por fuente</h2>{% if source_checks.has_result %}<span class="tag">{{ source_checks.completed }} de {{ source_checks.total }} con resultado automático</span>{% endif %}</div>
+    <p class="muted">Cada fila corresponde a una fuente. Las revisiones manuales y las verificaciones por correo no tienen un resultado automático en VIGIA.</p>
+    <div class="breach-checks-head" aria-hidden="true"><span>Fuente</span><span>Resultado de esta consulta</span><span>Revisión externa</span></div>
+    <ul class="breach-checks-list">{% for check in source_checks.rows %}<li class="breach-source-row" data-source="{{ check.id }}" data-check-state="{{ check.state }}">
+        <div><h3>{{ check.name }}</h3><p class="muted">{{ check.mode }}</p></div>
+        <div><span class="breach-source-status breach-source-status--{{ check.tone }}"><span aria-hidden="true">{{ check.symbol }}</span>{{ check.label }}</span>{% if check.count != None %}<p class="muted">{{ check.count }} registro{{ check.count|pluralize }} de exposición.</p>{% endif %}<p class="muted">{{ check.detail }}</p></div>
+        <div><a class="breach-source-link" href="{{ check.url }}" target="_blank" rel="noopener noreferrer">{{ check.action }} ↗</a></div>
+    </li>{% endfor %}</ul>
+    <details class="breach-verification" id="malwarebytes-verification"><summary>Malwarebytes: revisión y código de verificación</summary><ol><li>Abre Malwarebytes desde su enlace de la tabla.</li><li>Introduce allí el mismo correo que consultaste en VIGIA.</li><li>Recibe el código de verificación en ese correo y úsalo <strong>solo en el sitio de Malwarebytes</strong>.</li><li>Consulta el resultado en ese sitio después de completar la verificación.</li></ol><p class="muted">VIGIA no solicita el código, no accede a tu buzón y no recibe el resultado de esa revisión. Para asociarlo automáticamente hace falta una API oficial que permita vincular la solicitud, su código y el resultado al mismo correo.</p></details>
 </section>
 {% endblock %}
