@@ -32,8 +32,9 @@
             {% timezone "America/Santiago" %}
             <dl class="file-metadata">{% if module != 'url' %}<div><dt>Tamaño</dt><dd>{% if summary.file_size != None %}{{ summary.file_size|filesizeformat }}{% else %}No disponible{% endif %}</dd></div>{% endif %}<div><dt>Recibido</dt><dd>{{ summary.created_at|date:'d/m/Y H:i T' }}</dd></div><div><dt>Procesado</dt><dd>{% if summary.finished_at %}{{ summary.finished_at|date:'d/m/Y H:i T' }}{% else %}Pendiente{% endif %}</dd></div></dl>
             {% endtimezone %}
-            {% else %}
-            <p class="verdict-note">{% if summary.pending %}Puedes mantener esta página abierta mientras se completa el análisis.{% else %}Si necesitas ayuda con este resultado, contacta a tu equipo de seguridad.{% endif %}</p>
+            {% endif %}
+            {% if summary.pending %}<p class="verdict-note">Puedes mantener esta página abierta mientras se completa el análisis.</p>{% else %}
+            <section class="email-recommendation result-guidance" aria-labelledby="guidance-heading"><h3 id="guidance-heading">Qué te recomendamos hacer</h3><p><strong>{{ summary.guidance.action }}</strong> {{ summary.guidance.detail }}</p>{% if summary.guidance.email %}<p>{{ summary.guidance.contact_label }} <a href="mailto:{{ summary.guidance.email }}">{{ summary.guidance.email }}</a></p>{% endif %}</section>
             {% endif %}
             {% if summary.pending %}<div class="pending-footer"><span class="activity-indicator" aria-hidden="true"></span><span>Actualización automática activada</span><a href="">Actualizar ahora</a></div>{% endif %}
         </div>
@@ -60,7 +61,6 @@
         {% for method in email_analysis.methods %}<li><h3>{{ method.title }}</h3><p class="muted"><small>{{ method.short_definition }}</small></p><p class="email-check-result">{{ method.summary }}</p></li>{% endfor %}
         <li><h3>Enlaces, contenido y archivos adjuntos</h3><p>{{ email_analysis.content_summary }}</p><p>{{ email_analysis.resource_summary }}</p></li>
     </ul>
-    <div class="email-recommendation"><h3>Qué te recomendamos hacer</h3><p>{{ email_analysis.recommendation }}</p></div>
     <details class="email-ai-comment"><summary>Qué significa cada comprobación y sus límites</summary><p>{{ email_analysis.routing_explanation }}</p>{% for method in email_analysis.methods %}<h3>{{ method.title }}</h3><p>{{ method.description }}</p><p><strong>{{ method.result_label }}.</strong> {{ method.interpretation }}</p>{% endfor %}<p>{{ email_analysis.content_explanation }}</p></details>
     {% if email_analysis.dns_configuration %}<section class="email-dns-report"><h3>Consulta complementaria de configuración · MXToolbox</h3><p>Se consulta la configuración que los dominios publican actualmente en Internet. Puede diferir de la que existía al recibir el correo y no confirma quién envió el mensaje ni verifica su firma digital.</p>
     {% if email_analysis.dns_configuration.checks %}<ul>{% for check in email_analysis.dns_configuration.checks %}<li><strong>{{ check.name }}:</strong> {% if check.received %}MXToolbox devolvió información para la revisión del equipo de seguridad.{% else %}No se obtuvo una respuesta utilizable.{% endif %}</li>{% endfor %}</ul>{% else %}<p>No se pudieron realizar las consultas complementarias para este análisis.</p>{% endif %}

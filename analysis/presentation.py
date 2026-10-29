@@ -1,4 +1,4 @@
-"""Build an administrator-only summary from stored evidence, never invented scores."""
+"""Present evidence and institutional guidance with explicit public/admin boundaries."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,8 +12,9 @@ from .email_language import (
     explain_routing,
 )
 from .email_resources import public_summary as public_resource_summary
-from .labels import STATUS_LABELS
+from .labels import PENDING_STATUSES, STATUS_LABELS
 from .mxtoolbox import public_summary as public_dns_summary
+from .recommendations import assessment_for, guidance_for
 from .url_categories import public_categories
 
 
@@ -44,16 +45,7 @@ def email_explanation(item):
         except ValueError:
             pass
     # The recommendation is available even when no AI response could be generated.
-    recommendation = {
-        "malicious": "No abras enlaces ni adjuntos. Reporta el mensaje a tu equipo de seguridad.",
-        "suspicious": "Evita interactuar con el mensaje hasta que tu equipo de seguridad lo revise.",
-        "inconclusive": "No se pudo completar la evaluación. Solicita revisión a tu equipo de seguridad.",
-        "no_indicators": "No se detectaron indicios en las comprobaciones realizadas. Verifica las solicitudes sensibles por un canal independiente; este resultado no garantiza seguridad.",
-    }.get(item.verdict, "Consulta a tu equipo de seguridad.")
-    if item.status in {"waiting_vt", "polling_vt"}:
-        recommendation = (
-            "El análisis sigue en curso. Espera el resultado antes de interactuar con el correo."
-        )
+    recommendation = guidance_for(item)["text"]
     if report:
         report["recommendation"] = recommendation
     return {
@@ -71,12 +63,6 @@ def email_explanation(item):
     }
 
 
-VERDICT_MESSAGES = {
-    "malicious": "Se detectaron indicadores de contenido malicioso. Evita abrir el archivo.",
-    "suspicious": "Se encontraron señales sospechosas. Consulta a tu equipo de seguridad.",
-    "no_indicators": "No se detectaron indicios en las comprobaciones realizadas. Esto no garantiza que sea seguro.",
-    "inconclusive": "La evidencia disponible no permite completar una evaluación concluyente.",
-}
 VT_MESSAGES = {
     "not_configured": "VirusTotal no estaba configurado al realizar este análisis.",
     "unknown_hash": "VirusTotal no tiene un reporte para este hash. El archivo no se ha enviado.",
@@ -107,42 +93,34 @@ STAT_KEYS = (
 
 
 def result_summary(item, admin):
-    pending = item.status in {"queued", "running", "waiting_vt", "polling_vt"}
+    pending = item.status in PENDING_STATUSES
     summary = {
         "pending": pending,
         "status_label": STATUS_LABELS.get(item.status, "Estado desconocido"),
         "tone": "pending" if pending else item.verdict,
-        "message": VERDICT_MESSAGES.get(
-            item.verdict, "Consulta el resultado con tu equipo de seguridad."
-        ),
+        "message": assessment_for(item),
+        "guidance": guidance_for(item),
         "symbol": {"malicious": "!", "suspicious": "!", "no_indicators": "✓"}.get(
             item.verdict, "?"
         ),
     }
     if pending:
+        subject = {"file": "El archivo", "eml": "El correo", "url": "La URL"}.get(
+            item.kind, "El archivo"
+        )
+        object_name = {"file": "el archivo", "eml": "el correo", "url": "la URL"}.get(
+            item.kind, "el archivo"
+        )
         summary["symbol"] = "···"
         summary["message"] = (
-            "El archivo espera su turno. El resultado se actualizará automáticamente."
+            f"{subject} espera su turno. El resultado se actualizará automáticamente."
             if item.status == "queued"
-            else "Estamos revisando el archivo. El resultado se actualizará automáticamente."
+            else f"Estamos revisando {object_name}. El resultado se actualizará automáticamente."
         )
         if item.status in {"waiting_vt", "polling_vt"}:
             summary["message"] = (
-                "El archivo se envió con tu autorización. Estamos esperando el análisis de VirusTotal; puede tardar varios minutos. Esta página se actualizará automáticamente."
+                f"Estamos esperando el resultado de VirusTotal para {object_name}; puede tardar varios minutos. Esta página se actualizará automáticamente."
             )
-    if item.kind == "url":
-        summary["message"] = (
-            "La URL espera su turno. El resultado se actualizará automáticamente."
-            if item.status == "queued"
-            else "VirusTotal está procesando la URL autorizada. El resultado se actualizará automáticamente."
-            if pending
-            else {
-                "malicious": "Los motores consultados detectaron contenido malicioso asociado al enlace. Evita abrirlo.",
-                "suspicious": "Se encontraron detecciones sospechosas asociadas al enlace. Consulta a tu equipo de seguridad.",
-                "no_indicators": "No se registraron detecciones en el reporte de reputación consultado. Esto no garantiza que el enlace sea seguro.",
-                "inconclusive": "No se obtuvo un reporte suficiente para evaluar la reputación del enlace.",
-            }.get(item.verdict, "Consulta el resultado con tu equipo de seguridad.")
-        )
     if (
         pending
         and item.kind == "eml"
