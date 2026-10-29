@@ -1,45 +1,89 @@
-/* UTEM palette: exact institutional values supplied from the identity manual. */
+/* UTEM UI kit: exact palette from the screenshots supplied by the user (node 3:423). */
 :root {
   color-scheme: light;
-  --institution-blue: #004EAA;
-  --institution-green: #78BF26;
+  --blue-50: #F6FAFF;
+  --blue-100: #DDEDFF;
+  --blue-200: #AAD1FF;
+  --blue-300: #77B5FF;
+  --blue-400: #449AFF;
+  --blue-500: #117EFF;
+  --blue-600: #0065DD;
+  --blue-700: #004EAA;
+  --blue-800: #003777;
+  --blue-900: #002D5B;
+  --blue-950: #001F44;
+  --green-50: #FFFFFF;
+  --green-100: #F3FBE9;
+  --green-200: #DAF2BF;
+  --green-300: #C2EA94;
+  --green-400: #AAE16A;
+  --green-500: #92D93F;
+  --green-600: #78BF26;
+  --green-700: #5D941E;
+  --green-800: #436A15;
+  --green-900: #283F0D;
+  --green-950: #1C2C09;
+  --gray-50: #F2F2F2;
+  --gray-100: #E6E6E6;
+  --gray-200: #CCCCCC;
+  --gray-300: #B3B3B3;
+  --gray-400: #999999;
+  --gray-500: #808080;
+  --gray-600: #666666;
+  --gray-700: #4D4D4D;
+  --gray-800: #333333;
+  --gray-900: #1A1A1A;
   --white: #FFFFFF;
-  --gray-70: #706F6F;
-  --gray-80: #575756;
-  --gray-90: #3C3C3B;
   --black: #000000;
-  /* White/blue tints support surfaces;
-  institutional green is a decorative accent. */
-  --bg: #F5F8FC;
-  --panel: var(--white);
-  --line: #D5DEE8;
-  --text: var(--gray-90);
-  --muted: var(--gray-80);
+  --white-opacity-26: rgba(255,255,255,.26);
+  --white-opacity-78: rgba(255,255,255,.78);
+  --black-opacity-87: rgba(0,0,0,.87);
+  --black-opacity-54: rgba(0,0,0,.54);
+  --black-opacity-26: rgba(0,0,0,.26);
+  --black-opacity-12: rgba(0,0,0,.12);
+  --institution-blue: var(--blue-700);
+  --institution-green: var(--green-600);
+  --text-light: #001B36;
+  --text-dark: #E1EAF3;
+  --body-light: #F5F5F5;
+  --card-light: var(--white);
+  --border-light: #DDDDDD;
+  --body-dark: #000A14;
+  --card-dark: #001020;
+  --border-dark: var(--blue-900);
+  --tooltip-color: #6B6B6B;
+  /* The current interface uses the kit's light theme. */
+  --bg: var(--body-light);
+  --panel: var(--card-light);
+  --line: var(--border-light);
+  --text: var(--text-light);
+  --heading: var(--green-800);
+  --muted: var(--gray-600);
   --accent: var(--institution-blue);
-  --action-hover: #003D85;
-  --surface-soft: #F5F8FC;
-  --surface-blue: #EBF1F8;
-  --surface-icon: #EBF5DE;
-  --ring-track: #D9E2EB;
-  --border-strong: #7897BA;
-  --header-button-border: rgba(255,255,255,.65);
-  --upload-bg: #E0EAF5;
-  --upload-border: #A3BFDF;
-  --drop-bg: #F8FBFF;
-  --drop-border: #4D83C4;
-  --input-border: #6B8EB8;
-  --drop-hover: #CCDCF0;
-  --drag-scrim: rgba(0,78,170,.18);
-  --shadow-color: rgba(0,0,0,.16);
-  /* Verdict colors communicate risk independently of institutional branding. */
+  --action-hover: var(--blue-800);
+  --surface-soft: var(--blue-50);
+  --surface-blue: var(--blue-100);
+  --surface-icon: var(--green-100);
+  --ring-track: var(--gray-100);
+  --border-strong: var(--blue-700);
+  --header-button-border: var(--white-opacity-78);
+  --upload-bg: var(--blue-100);
+  --upload-border: var(--blue-300);
+  --drop-bg: var(--blue-50);
+  --drop-border: var(--blue-600);
+  --input-border: var(--gray-500);
+  --drop-hover: var(--blue-100);
+  --drag-scrim: rgba(0,78,170,.12);
+  --shadow-color: var(--black-opacity-26);
+  /* Risk colors preserve the established meaning of security results. */
   --danger: #B42318;
   --warning: #8A5300;
-  --success: #326B13;
-  --neutral: var(--gray-80);
+  --success: var(--green-800);
+  --neutral: var(--gray-700);
   --danger-soft: #FEF3F2;
   --warning-soft: #FFF6E7;
-  --success-soft: #F1F8E9;
-  --neutral-soft: #F0F1F2;
+  --success-soft: var(--green-100);
+  --neutral-soft: var(--gray-50);
 }
 *{
   box-sizing:border-box
@@ -84,8 +128,12 @@ h1{
   font-weight:650
 }
 h2{
+  color:var(--heading);
   font-size:23px;
   letter-spacing:-.5px
+}
+h3{
+  color:var(--heading)
 }
 .eyebrow{
   font:12px/1.6 ui-monospace,monospace;
@@ -876,7 +924,7 @@ input[type=checkbox]{
 }
 .email-checks h3{
   font-size:16px;
-  color:var(--text);
+  color:var(--heading);
   margin:0 0 9px
 }
 .email-checks p{
@@ -987,7 +1035,10 @@ input[type=url]{
   border-color:var(--upload-border);
   color:var(--text)
 }
-.upload-card h2,.upload-card h3,.upload-card label{
+.upload-card h2,.upload-card h3{
+  color:var(--heading)
+}
+.upload-card label{
   color:var(--text)
 }
 .upload-card p{
@@ -1176,7 +1227,7 @@ input[type=url]{
   padding-left: 20px;
 }
 .card {
-  box-shadow: 0 2px 8px rgba(0,78,170,.035);
+  box-shadow: 0 2px 8px var(--black-opacity-12);
 }
 .table-wrap {
   background: var(--white);
@@ -1207,6 +1258,9 @@ input[type=url]{
 }
 a:hover {
   text-decoration: underline;
+}
+main a:not(.button):not(.history-result):hover {
+  color: var(--green-800);
 }
 .module-nav a:hover, .brand:hover, .button:hover {
   text-decoration: none;
@@ -1356,6 +1410,7 @@ footer {
   overflow-wrap: anywhere;
 }
 .breach-incidents h3 {
+  color: var(--text);
   margin: 0 0 8px;
 }
 .breach-incidents p {
@@ -1398,6 +1453,7 @@ footer {
   overflow-wrap: anywhere;
 }
 .breach-source-row h3 {
+  color: var(--text);
   margin: 0;
   font-size: 15px;
 }
