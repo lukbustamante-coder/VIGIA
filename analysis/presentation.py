@@ -11,6 +11,7 @@ from .email_language import (
     explain_method,
     explain_routing,
 )
+from .email_resources import public_summary as public_resource_summary
 from .labels import STATUS_LABELS
 from .mxtoolbox import public_summary as public_dns_summary
 from .url_categories import public_categories
@@ -26,7 +27,7 @@ def url_categorization(item):
 
 
 def email_explanation(item):
-    if item.kind != "eml" or item.status != "done":
+    if item.kind != "eml" or item.status not in {"done", "failed", "waiting_vt", "polling_vt"}:
         return None
     details = item.details if isinstance(item.details, dict) else {}
     headers = details.get("email_headers") or {}
@@ -49,6 +50,10 @@ def email_explanation(item):
         "inconclusive": "No se pudo completar la evaluación. Solicita revisión a tu equipo de seguridad.",
         "no_indicators": "No se detectaron indicios en las comprobaciones realizadas. Verifica las solicitudes sensibles por un canal independiente; este resultado no garantiza seguridad.",
     }.get(item.verdict, "Consulta a tu equipo de seguridad.")
+    if item.status in {"waiting_vt", "polling_vt"}:
+        recommendation = (
+            "El análisis sigue en curso. Espera el resultado antes de interactuar con el correo."
+        )
     if report:
         report["recommendation"] = recommendation
     return {
@@ -60,6 +65,7 @@ def email_explanation(item):
         "content_explanation": explain_content(details, headers),
         "routing_summary": concise_evidence(headers, methods),
         "content_summary": concise_content(details, headers),
+        "resource_summary": public_resource_summary(details.get("email_resources")),
         "recommendation": recommendation,
         "dns_configuration": public_dns_summary(providers.get("mxtoolbox")),
     }
@@ -136,6 +142,15 @@ def result_summary(item, admin):
                 "no_indicators": "No se registraron detecciones en el reporte de reputación consultado. Esto no garantiza que el enlace sea seguro.",
                 "inconclusive": "No se obtuvo un reporte suficiente para evaluar la reputación del enlace.",
             }.get(item.verdict, "Consulta el resultado con tu equipo de seguridad.")
+        )
+    if (
+        pending
+        and item.kind == "eml"
+        and isinstance(item.details, dict)
+        and item.details.get("email_resources", {}).get("status") == "active"
+    ):
+        summary["message"] = (
+            "Estamos consultando en VirusTotal los enlaces y adjuntos autorizados. El resultado se actualizará automáticamente; el tiempo depende de la cantidad de elementos y la cuota disponible."
         )
     if not admin:
         return summary

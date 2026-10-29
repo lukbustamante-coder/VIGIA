@@ -10,8 +10,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from analysis.email_resources import cleanup, resource_directory, waiting
 from analysis.models import AuditEvent, Submission
-from analysis.virustotal import PENDING_STATUSES, valid_analysis_id
 
 
 def limits():
@@ -25,6 +25,25 @@ def limits():
 def finish_error(item, error, provider_status=None):
     details = item.details.copy()
     local = details.get("local_assessment", {})
+    resources = details.get("email_resources", {})
+    reports = [details.get("providers", {}).get("virustotal", {})] + [
+        r.get("provider", {}) for r in resources.get("items", [])
+    ]
+    local = dict(local)
+    for report in reports:
+        stats = report.get("stats", {}) if report.get("status") == "ok" else {}
+        local["malicious"] = local.get("malicious", False) or stats.get("malicious", 0) >= 2
+        local["suspicious"] = (
+            local.get("suspicious", False)
+            or stats.get("malicious", 0) == 1
+            or stats.get("suspicious", 0) > 0
+        )
+    for entry in resources.get("items", []):
+        if entry.get("stage") in {"lookup", "poll"}:
+            entry.update(stage="done", provider={"status": "analysis_timeout"})
+    if resources:
+        resources["status"] = "incomplete"
+    cleanup(resource_directory(settings.PRIVATE_STORAGE / str(item.id)))
     verdict = (
         "malicious"
         if local.get("malicious")
@@ -37,7 +56,7 @@ def finish_error(item, error, provider_status=None):
     if provider_status:
         details.setdefault("providers", {}).setdefault("virustotal", {})["status"] = provider_status
         coverage = details.setdefault("coverage", {})
-        coverage["reputation_available"] = False
+        coverage["reputation_available"] = any(report.get("status") == "ok" for report in reports)
         coverage.setdefault("reasons", []).append(
             {
                 "source": "virustotal",
@@ -100,7 +119,7 @@ class Command(BaseCommand):
         if polling and (
             not item.vt_deadline_at
             or item.vt_deadline_at <= timezone.now()
-            or item.vt_poll_count >= 60
+            or item.vt_poll_count >= (240 if item.email_resources_consent else 60)
         ):
             finish_error(item, "external_analysis_timeout", "analysis_timeout")
             return
@@ -108,6 +127,8 @@ class Command(BaseCommand):
         command = [sys.executable, "-m", "analysis.scanner"]
         if polling:
             command.append("--poll-vt")
+            if item.email_resources_consent and item.kind == "eml":
+                command.append(str(resource_directory(path)))
         elif item.kind == "url":
             command.append("--url")
         else:
@@ -118,6 +139,12 @@ class Command(BaseCommand):
                 command.append("--ai-headers")
             if item.mxtoolbox_consent and item.kind == "eml" and settings.MXTOOLBOX_ENABLED:
                 command.append("--mxtoolbox")
+            if (
+                item.email_resources_consent
+                and item.kind == "eml"
+                and settings.VT_ALLOW_EMAIL_RESOURCES
+            ):
+                command.append("--vt-email-resources")
         scanner_env = {
             name: value
             for name, value in os.environ.items()
@@ -161,6 +188,9 @@ class Command(BaseCommand):
         scanner_env["VT_ALLOW_URL_SUBMISSION"] = (
             "true" if settings.VT_ALLOW_URL_SUBMISSION else "false"
         )
+        scanner_env["VT_ALLOW_EMAIL_RESOURCES"] = (
+            "true" if settings.VT_ALLOW_EMAIL_RESOURCES else "false"
+        )
         scanner_input = (
             json.dumps(item.details)
             if polling
@@ -177,7 +207,7 @@ class Command(BaseCommand):
                 cwd=settings.BASE_DIR,
                 capture_output=True,
                 text=True,
-                timeout=150 if mxtoolbox_enabled and not polling else 90,
+                timeout=150 if mxtoolbox_enabled or item.email_resources_consent else 90,
                 check=True,
                 preexec_fn=limits,
                 env=scanner_env,
@@ -224,21 +254,28 @@ class Command(BaseCommand):
                 AuditEvent.objects.create(
                     actor=item.owner, action="vt_sample_uploaded", submission_id=item.id
                 )
-            waiting = (
-                valid_analysis_id(provider.get("analysis_id"))
-                and provider.get("status") in PENDING_STATUSES
-            )
-            if waiting:
-                delay = 60 if provider["status"] == "quota_exceeded" else 30
+            if polling and item.email_resources_consent:
+                AuditEvent.objects.create(
+                    actor=item.owner, action="email_resources_batch", submission_id=item.id
+                )
+            if waiting(result["details"]):
+                resource_items = result["details"].get("email_resources", {}).get("items", [])
+                limited = provider.get("status") == "quota_exceeded" or any(
+                    r.get("provider", {}).get("status") == "quota_exceeded" for r in resource_items
+                )
+                delay = 60 if limited else 30
                 Submission.objects.filter(pk=item.pk, status=active).update(
                     status="waiting_vt",
                     verdict="pending",
                     details=result["details"],
                     vt_next_poll_at=timezone.now() + timedelta(seconds=delay),
-                    vt_deadline_at=item.vt_deadline_at or timezone.now() + timedelta(minutes=30),
+                    vt_deadline_at=item.vt_deadline_at
+                    or timezone.now()
+                    + timedelta(minutes=120 if item.email_resources_consent else 30),
                     vt_poll_count=item.vt_poll_count + int(polling),
                 )
             else:
+                cleanup(resource_directory(path))
                 Submission.objects.filter(pk=item.pk, status=active).update(
                     status="done",
                     verdict=result["verdict"],

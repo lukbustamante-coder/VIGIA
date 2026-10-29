@@ -27,6 +27,12 @@ AUTH_METHODS = {
     ),
 }
 
+SHORT_DEFINITIONS = {
+    "spf": "SPF indica qué servidores pueden enviar correos en nombre de un dominio.",
+    "dkim": "DKIM es una firma digital que permite comprobar el dominio firmante y si las partes firmadas cambiaron.",
+    "dmarc": "DMARC comprueba si el dominio del remitente es coherente con el validado por SPF o DKIM.",
+}
+
 AUTH_RESULTS = {
     "pass": (
         "Satisfactorio según el correo (PASS)",
@@ -93,6 +99,7 @@ def explain_method(method, raw_values):
         "declared": ", ".join(value.upper() for value in values) or "No consta",
         "title": title,
         "description": description,
+        "short_definition": SHORT_DEFINITIONS[method],
         "result_label": label,
         "interpretation": interpretation,
     }

@@ -6,6 +6,7 @@ from uuid import UUID
 
 from django.core.management.base import BaseCommand, CommandError
 
+from analysis.email_resources import public_summary as resource_summary
 from analysis.models import Submission
 
 
@@ -45,6 +46,8 @@ class Command(BaseCommand):
                     .get("status", "no_record"),
                     "mxtoolbox_authorized": item.mxtoolbox_consent,
                     "sample_upload_authorized": item.vt_upload_consent,
+                    "email_resources_authorized": item.email_resources_consent,
+                    "email_resources_summary": resource_summary(details.get("email_resources")),
                     "url_scan_authorized": item.url_scan_consent,
                     "sample_upload_attempted": provider.get("upload_attempted") is True,
                     "sample_uploaded": provider.get("sample_uploaded"),

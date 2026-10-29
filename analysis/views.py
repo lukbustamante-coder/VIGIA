@@ -103,6 +103,7 @@ def upload(request):
                 vt_upload_consent=bool(form.cleaned_data.get("vt_upload_consent")),
                 ai_header_consent=bool(form.cleaned_data.get("ai_header_consent")),
                 mxtoolbox_consent=bool(form.cleaned_data.get("mxtoolbox_consent")),
+                email_resources_consent=bool(form.cleaned_data.get("email_resources_consent")),
             )
             path = settings.PRIVATE_STORAGE / str(item.id)
             with open(path, "xb") as target:
@@ -125,6 +126,10 @@ def upload(request):
             if item.mxtoolbox_consent:
                 AuditEvent.objects.create(
                     actor=request.user, action="mxtoolbox_authorized", submission_id=item.id
+                )
+            if item.email_resources_consent:
+                AuditEvent.objects.create(
+                    actor=request.user, action="email_resources_authorized", submission_id=item.id
                 )
         return redirect("result", pk=item.id)
     except Exception:

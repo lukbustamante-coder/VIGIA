@@ -1,4 +1,4 @@
-"""Static inspection only: never executes, renders, extracts to disk, or visits IOCs."""
+"""Static inspection: no execution, rendering, archive extraction or direct IOC visits."""
 
 import hashlib
 import io
@@ -310,7 +310,9 @@ class Inspector:
         parts = list(message.walk())
         if depth == 0 and len(parts) <= MAX_ENTRIES:
             self.email_headers["attachment_count"] = sum(
-                bool(part.get_filename()) for part in parts if not part.is_multipart()
+                bool(part.get_filename() or part.get_content_disposition() == "attachment")
+                for part in parts
+                if not part.is_multipart()
             )
         if len(parts) > MAX_ENTRIES:
             self.finding("Demasiadas partes MIME.", incomplete=True)
@@ -539,7 +541,14 @@ class Inspector:
 
 
 def analyze(
-    path, filename, kind, *, upload_consent=False, ai_header_consent=False, mxtoolbox_consent=False
+    path,
+    filename,
+    kind,
+    *,
+    upload_consent=False,
+    ai_header_consent=False,
+    mxtoolbox_consent=False,
+    email_resources_consent=False,
 ):
     data = Path(path).read_bytes()
     if len(data) > MAX_BYTES:
@@ -573,16 +582,26 @@ def analyze(
             inspector.providers["ai"] = {"status": "deferred"}
     else:
         inspector.ai()
+    resources = None
+    if kind == "eml":
+        from .email_resources import apply, prepare, resource_directory
+
+        resources = prepare(
+            data, inspector.iocs["urls"], resource_directory(path), consent=email_resources_consent
+        )
+        apply(inspector, resources)
     result = inspector.result()
     result["details"]["file"] = {
         "sha256": hashlib.sha256(data).hexdigest(),
         "size_bytes": len(data),
     }
     result["details"]["local_assessment"] = local
+    if resources is not None:
+        result["details"]["email_resources"] = resources
     return result
 
 
-def poll_virustotal(details):
+def poll_virustotal(details, resource_dir=None):
     """Resume the original local assessment without rereading or resending the sample."""
     inspector = Inspector()
     inspector.kind = details.get("module", "file")
@@ -600,7 +619,11 @@ def poll_virustotal(details):
         r for r in details.get("coverage", {}).get("reasons", []) if r.get("source") == "local"
     ][:100]
     previous = details["providers"]["virustotal"]
-    provider = {**previous, **fetch_analysis(previous["analysis_id"], os.getenv("VT_API_KEY", ""))}
+    provider = dict(previous)
+    main_polled = False
+    if previous.get("analysis_id") and previous.get("status", "queued") in PENDING_STATUSES:
+        main_polled = True
+        provider.update(fetch_analysis(previous["analysis_id"], os.getenv("VT_API_KEY", "")))
     if provider["status"] == "ok":
         inspector.malicious |= provider["stats"]["malicious"] >= 2
         inspector.suspicious |= (
@@ -634,7 +657,20 @@ def poll_virustotal(details):
         )
         inspector.providers["virustotal"] = provider
         inspector.providers["ai"] = details.get("providers", {}).get("ai", {"status": "deferred"})
+    resources = details.get("email_resources")
+    if resources:
+        from .email_resources import advance, apply
+
+        if (
+            not main_polled
+            or provider["status"] != "quota_exceeded"
+            or os.getenv("VT_ALLOW_EMAIL_RESOURCES", "false").lower() != "true"
+        ):
+            resources = advance(resources, resource_dir)
+        apply(inspector, resources)
     result = inspector.result()
+    if resources:
+        result["details"]["email_resources"] = resources
     result["details"]["file"] = details.get("file", {})
     result["details"]["local_assessment"] = local
     if "mxtoolbox" in details.get("providers", {}):
@@ -652,8 +688,15 @@ if __name__ == "__main__":
                 analyze_url(payload["url"], scan_consent=payload.get("scan_consent") is True)
             )
         )
-    elif sys.argv[1:] == ["--poll-vt"]:
-        print(json.dumps(poll_virustotal(json.loads(sys.stdin.read(1024 * 1024)))))
+    elif sys.argv[1:2] == ["--poll-vt"]:
+        print(
+            json.dumps(
+                poll_virustotal(
+                    json.loads(sys.stdin.read(8 * 1024 * 1024)),
+                    sys.argv[2] if len(sys.argv) > 2 else None,
+                )
+            )
+        )
     else:
         print(
             json.dumps(
@@ -662,6 +705,7 @@ if __name__ == "__main__":
                     upload_consent="--upload-to-vt" in sys.argv[4:],
                     ai_header_consent="--ai-headers" in sys.argv[4:],
                     mxtoolbox_consent="--mxtoolbox" in sys.argv[4:],
+                    email_resources_consent="--vt-email-resources" in sys.argv[4:],
                 )
             )
         )

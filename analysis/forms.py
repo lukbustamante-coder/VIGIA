@@ -96,12 +96,19 @@ class UploadForm(forms.Form):
         label="Autorizar consultas de configuración del correo en MXToolbox",
         help_text="Se compartirán solo los dominios de correo y, si está disponible, un selector de firma DKIM. No se envían direcciones completas, cuerpo ni adjuntos. Puede consumir hasta tres consultas DNS de la cuenta.",
     )
+    email_resources_consent = forms.BooleanField(
+        required=False,
+        label="Autorizar el análisis individual de enlaces y adjuntos en VirusTotal",
+        help_text="Se compartirán las URL completas, incluidos sus parámetros, y los adjuntos si el envío de muestras está habilitado. VirusTotal podrá visitar enlaces cuando el envío de URL esté habilitado. Puede compartir estos datos con sus socios. No autorices contenido confidencial ni enlaces de acceso privado. Consume consultas por cada elemento.",
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not settings.VT_ALLOW_SAMPLE_UPLOAD:
             self.fields.pop("vt_upload_consent")
         module = self.data.get("kind") if self.is_bound else self.initial.get("kind")
+        if not settings.VT_ALLOW_EMAIL_RESOURCES or module != "eml":
+            self.fields.pop("email_resources_consent")
         if not settings.AI_ALLOW_HEADER_UPLOAD or module != "eml":
             self.fields.pop("ai_header_consent")
         if not settings.MXTOOLBOX_ENABLED or module != "eml":
@@ -109,6 +116,12 @@ class UploadForm(forms.Form):
 
     def clean(self):
         data = super().clean()
+        if self.data.get("email_resources_consent") and (
+            not settings.VT_ALLOW_EMAIL_RESOURCES or data.get("kind") != "eml"
+        ):
+            raise forms.ValidationError(
+                "El análisis de enlaces y adjuntos no está habilitado para este módulo."
+            )
         if self.data.get("mxtoolbox_consent") and (
             not settings.MXTOOLBOX_ENABLED or data.get("kind") != "eml"
         ):
