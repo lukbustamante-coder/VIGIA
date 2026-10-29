@@ -54,14 +54,14 @@
 {% if email_analysis %}
 <section class="card email-report" aria-labelledby="email-report-heading">
     <div class="section-title"><h2 id="email-report-heading">Qué revisamos en este correo</h2><span class="tag">AUTENTICACIÓN NO VERIFICADA</span></div>
-    <p class="email-report-intro">Un correo guarda registros técnicos sobre su entrega y su remitente. A continuación explicamos qué significa cada comprobación y qué información aparece en el mensaje que subiste.</p>
-    <p class="muted">Los resultados declarados pertenecen al archivo recibido: VIGIA no ha confirmado quién escribió esos registros ni ha repetido las comprobaciones de autenticidad.</p>
+    <p class="muted">Resumen de los datos del correo. Los resultados de autenticación son declarados por sus encabezados; VIGIA no los ha verificado de forma independiente.</p>
     <ul class="email-checks">
-        <li><h3>Ruta del mensaje y servidores de entrega</h3><p>{{ email_analysis.routing_explanation }}</p></li>
-        {% for method in email_analysis.methods %}<li><h3>{{ method.title }}</h3><p>{{ method.description }}</p><p class="email-check-result"><strong>Resultado en este correo: {{ method.result_label }}.</strong> {{ method.interpretation }}</p></li>{% endfor %}
-        <li><h3>Enlaces, contenido y archivos adjuntos</h3><p>{{ email_analysis.content_explanation }}</p></li>
+        <li><h3>IP y ruta del correo</h3><p>{{ email_analysis.routing_summary }}</p></li>
+        {% for method in email_analysis.methods %}<li><h3>{{ method.title }}</h3><p class="email-check-result">{{ method.summary }}</p></li>{% endfor %}
+        <li><h3>Enlaces, contenido y archivos adjuntos</h3><p>{{ email_analysis.content_summary }}</p></li>
     </ul>
     <div class="email-recommendation"><h3>Qué te recomendamos hacer</h3><p>{{ email_analysis.recommendation }}</p></div>
+    <details class="email-ai-comment"><summary>Qué significa cada comprobación y sus límites</summary><p>{{ email_analysis.routing_explanation }}</p>{% for method in email_analysis.methods %}<h3>{{ method.title }}</h3><p>{{ method.description }}</p><p><strong>{{ method.result_label }}.</strong> {{ method.interpretation }}</p>{% endfor %}<p>{{ email_analysis.content_explanation }}</p></details>
     {% if email_analysis.dns_configuration %}<section class="email-dns-report"><h3>Consulta complementaria de configuración · MXToolbox</h3><p>Se consulta la configuración que los dominios publican actualmente en Internet. Puede diferir de la que existía al recibir el correo y no confirma quién envió el mensaje ni verifica su firma digital.</p>
     {% if email_analysis.dns_configuration.checks %}<ul>{% for check in email_analysis.dns_configuration.checks %}<li><strong>{{ check.name }}:</strong> {% if check.received %}MXToolbox devolvió información para la revisión del equipo de seguridad.{% else %}No se obtuvo una respuesta utilizable.{% endif %}</li>{% endfor %}</ul>{% else %}<p>No se pudieron realizar las consultas complementarias para este análisis.</p>{% endif %}
     <p class="muted">Una respuesta recibida no equivale a superar SPF, DKIM o DMARC. Los detalles de estas consultas están disponibles para administradores.</p></section>{% endif %}
@@ -69,7 +69,7 @@
     <details class="email-ai-comment"><summary>Comentario adicional asistido por IA</summary>
     <p class="muted">{% if email_analysis.scope == 'headers' %}Basada en encabezados enviados con autorización.{% else %}Basada solo en hallazgos técnicos; no se enviaron los encabezados completos.{% endif %} No incluye análisis del cuerpo ni de los adjuntos por la IA. Puede contener errores y no sustituye el veredicto técnico.</p>
     <dl class="email-report-sections"><div><dt>Resumen</dt><dd>{{ email_analysis.report.summary }}</dd></div><div><dt>Ruta del mensaje</dt><dd>{{ email_analysis.report.routing }}</dd></div><div><dt>Autenticación declarada</dt><dd>{{ email_analysis.report.authentication }}</dd></div></dl></details>
-    {% else %}<p class="muted">No se obtuvo un comentario adicional de IA. La interpretación de los registros y la recomendación anterior siguen disponibles.</p>{% endif %}
+    {% endif %}
 </section>
 {% endif %}
 

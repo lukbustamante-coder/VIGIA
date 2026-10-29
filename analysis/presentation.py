@@ -4,7 +4,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .ai_reports import clean_report
-from .email_language import explain_content, explain_method, explain_routing
+from .email_language import (
+    concise_content,
+    concise_evidence,
+    explain_content,
+    explain_method,
+    explain_routing,
+)
 from .labels import STATUS_LABELS
 from .mxtoolbox import public_summary as public_dns_summary
 from .url_categories import public_categories
@@ -52,6 +58,8 @@ def email_explanation(item):
         "scope": "headers" if ai.get("data_scope") == "headers" else "technical_findings",
         "routing_explanation": explain_routing(headers),
         "content_explanation": explain_content(details, headers),
+        "routing_summary": concise_evidence(headers, methods),
+        "content_summary": concise_content(details, headers),
         "recommendation": recommendation,
         "dns_configuration": public_dns_summary(providers.get("mxtoolbox")),
     }

@@ -88,3 +88,59 @@ def test_attachment_count_is_observed_in_new_scans():
     scanner.inspect(message.as_bytes(), "mail.eml", "eml")
     assert scanner.email_headers["attachment_count"] == 1
     assert scanner.result()["details"]["email_headers"]["attachment_count"] == 1
+
+
+def test_concise_summary_uses_observed_domains_and_public_routing_ips():
+    from analysis.email_language import concise_evidence
+
+    methods = [explain_method(name, ["pass"]) for name in ("spf", "dkim", "dmarc")]
+    routing = concise_evidence(
+        {
+            "selected": {
+                "From": ["Alice <alice@example.org>"],
+                "Return-Path": ["<bounce@example.org>"],
+                "Received": [
+                    "from mail.example.org ([8.8.8.8]) by relay; today",
+                    "from internal ([10.0.0.1])",
+                ],
+                "DKIM-Signature": [{"d": "example.org"}],
+            }
+        },
+        methods,
+    )
+    assert "8.8.8.8" in routing and "10.0.0.1" not in routing
+    assert "No se comprobó que pertenezcan" in routing
+    assert "coincide exactamente" in methods[0]["summary"]
+    assert "mismo dominio" in methods[1]["summary"]
+    assert "El correo declara PASS" in methods[2]["summary"]
+    assert "alice@" not in str(methods)
+
+
+def test_different_signer_is_not_called_fraud_and_conflicting_results_are_preserved():
+    from analysis.email_language import concise_evidence
+
+    methods = [explain_method(name, ["pass", "fail"]) for name in ("spf", "dkim", "dmarc")]
+    concise_evidence(
+        {
+            "selected": {
+                "From": ["alice@example.org"],
+                "Return-Path": ["bounce@mailer.example.net"],
+                "DKIM-Signature": [{"d": "mailer.example.net"}],
+            }
+        },
+        methods,
+    )
+    assert "no implica fraude" in methods[0]["summary"]
+    assert "no demuestra suplantación" in methods[1]["summary"]
+    assert "PASS, FAIL" in methods[2]["summary"]
+    assert "cumple las reglas" not in methods[2]["summary"]
+
+
+def test_missing_or_ambiguous_sender_does_not_invent_domain_matches():
+    from analysis.email_language import concise_evidence
+
+    methods = [explain_method(name, []) for name in ("spf", "dkim", "dmarc")]
+    routing = concise_evidence({"selected": {"From": ["a@example.org", "b@other.org"]}}, methods)
+    assert "no pudo determinarse" in routing
+    assert all("No hay resultado registrado" in method["summary"] for method in methods)
+    assert "coincide exactamente" not in str(methods)

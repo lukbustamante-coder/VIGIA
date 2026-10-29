@@ -1,5 +1,9 @@
 """Plain-language explanations of recorded evidence, independent of AI availability."""
 
+import ipaddress
+import re
+from email.utils import getaddresses
+
 AUTH_METHODS = {
     "spf": (
         "Autorización del servidor de envío (SPF)",
@@ -149,3 +153,124 @@ def explain_content(details, headers):
         text += "La cobertura local no está confirmada como completa; no puede afirmarse que todo el contenido se haya revisado. "
     text += "La ausencia de hallazgos no garantiza que los enlaces o adjuntos sean seguros."
     return text
+
+
+# These summaries compare recorded values only; they do not resolve DNS or verify signatures.
+def _domain(value):
+    addresses = getaddresses([value])
+    domains = set()
+    for _, address in addresses:
+        candidate = address.rsplit("@", 1)[-1].rstrip(".").lower()
+        if re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?", candidate):
+            if "." in candidate and all(part for part in candidate.split(".")):
+                domains.add(candidate)
+    return next(iter(domains)) if len(domains) == 1 else ""
+
+
+def _header_domain(selected, name):
+    values = selected.get(name, [])
+    return _domain(values[0]) if len(values) == 1 and isinstance(values[0], str) else ""
+
+
+def concise_evidence(headers, methods):
+    selected = headers.get("selected") or {}
+    sender = _header_domain(selected, "From")
+    sender_text = (
+        f"el remitente {sender}" if sender else "el remitente, cuyo dominio no pudo determinarse"
+    )
+    ips = []
+    for value in selected.get("Received", [])[:10]:
+        for candidate in re.findall(r"\[([^\]]{1,64})\]", value):
+            try:
+                ip = ipaddress.ip_address(re.sub(r"^IPv6:", "", candidate, flags=re.I))
+            except ValueError:
+                continue
+            if ip.is_global and str(ip) not in ips:
+                ips.append(str(ip))
+    if ips:
+        shown = ", ".join(ips[:5]) + (" y otras" if len(ips) > 5 else "")
+        routing = f"Se encontraron las IP públicas {shown} en la ruta del correo de {sender_text}. No se comprobó que pertenezcan a su dominio."
+    else:
+        routing = f"No se identificaron IP públicas en los registros de entrega conservados para {sender_text}. No se pudo comprobar su relación con el dominio."
+    if headers.get("truncated"):
+        routing += " Los encabezados están incompletos."
+
+    envelope = _header_domain(selected, "Return-Path")
+    signatures = selected.get("DKIM-Signature", [])
+    signers = list(
+        dict.fromkeys(
+            domain
+            for signature in signatures[:10]
+            if isinstance(signature, dict)
+            if (domain := _domain(signature.get("d", "")))
+        )
+    )
+    for method in methods:
+        name = method["name"].lower()
+        declared = method["declared"]
+        result = (
+            "No hay resultado registrado."
+            if declared == "No consta"
+            else f"El correo declara {declared}."
+        )
+        if declared == "PASS":
+            result = {
+                "spf": "El correo declara que el servidor estaba autorizado para enviar (PASS).",
+                "dkim": "El correo declara que la firma digital era válida (PASS).",
+                "dmarc": result,
+            }[name]
+        elif declared == "FAIL":
+            result = {
+                "spf": "El correo declara que el servidor no superó la comprobación de autorización (FAIL).",
+                "dkim": "El correo declara que la firma digital no superó la comprobación (FAIL).",
+                "dmarc": result,
+            }[name]
+        elif declared not in {"PASS", "FAIL", "No consta"}:
+            result += " No permite confirmar una comprobación satisfactoria."
+        if name == "spf":
+            context = (
+                f"El dominio de envío registrado en Return-Path es {envelope}."
+                if envelope
+                else "No consta un único dominio de envío en Return-Path."
+            )
+            if sender and envelope:
+                context += (
+                    f" Ese dominio coincide exactamente con el del remitente ({sender})."
+                    if sender == envelope
+                    else f" Ese dominio difiere del remitente ({sender}); esto puede ocurrir con plataformas de envío y no implica fraude."
+                )
+        elif name == "dkim":
+            context = (
+                f"La firma indica el dominio {', '.join(signers[:5])}."
+                if signers
+                else "No consta un dominio de firma identificable."
+            )
+            if sender and signers:
+                context += (
+                    f" Una firma usa el mismo dominio que el remitente ({sender})."
+                    if sender in signers
+                    else f" Los dominios de firma observados difieren del remitente ({sender}); la diferencia por sí sola no demuestra suplantación."
+                )
+        else:
+            context = f"Se revisó el resultado de coherencia entre {sender_text} y los dominios usados al enviar o firmar."
+            if declared == "PASS":
+                result = "El correo declara PASS: informa que al menos uno de esos dominios cumple las reglas de coincidencia con el remitente."
+            elif declared == "FAIL":
+                result = "El correo declara FAIL: informa que no se cumplieron las reglas de coincidencia con el remitente."
+        method["summary"] = f"{context} {result}"
+    return routing
+
+
+def concise_content(details, headers):
+    links = details.get("iocs", {}).get("urls", [])
+    count = headers.get("attachment_count")
+    parts = [f"Se extrajeron {len(links)} enlaces sin abrirlos."]
+    parts.append(
+        f"Se identificaron {count} adjuntos o imágenes asociadas."
+        if type(count) is int and count >= 0
+        else "No consta la cantidad de adjuntos."
+    )
+    parts.append("No se evaluó si el texto intenta engañar al destinatario.")
+    if details.get("coverage", {}).get("local_complete") is not True:
+        parts.append("La revisión local del contenido no está confirmada como completa.")
+    return " ".join(parts)
