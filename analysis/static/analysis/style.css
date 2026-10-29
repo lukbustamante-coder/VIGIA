@@ -1281,7 +1281,36 @@ footer {
   overflow-wrap: anywhere;
 }
 .breach-result-warning {
-  border-left: 4px solid var(--warning);
+  border-left: 4px solid var(--danger);
+}
+.breach-result-warning #breach-result-heading {
+  color: var(--danger);
+}
+.breach-exposure-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+}
+.breach-exposure-alert > span {
+  flex-shrink: 0;
+  font-weight: 800;
+}
+.breach-result-warning .email-recommendation {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+}
+.breach-actions {
+  padding-left: 24px;
+  margin-bottom: 0;
+}
+.breach-actions li {
+  margin-bottom: 10px;
 }
 .breach-result-neutral {
   border-left: 4px solid var(--neutral);

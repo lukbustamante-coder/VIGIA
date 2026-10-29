@@ -19,12 +19,13 @@
 </section>
 {% if lookup_result %}
 <section class="card breach-result breach-result-{{ lookup_result.tone }}" aria-labelledby="breach-result-heading" role="status">
+    {% if lookup_result.found %}<div class="breach-exposure-alert"><span aria-hidden="true">!</span><strong>Atención: este correo aparece en filtraciones de datos.</strong></div>{% endif %}
     <h2 id="breach-result-heading">{{ lookup_result.title }}</h2><p>{{ lookup_result.message }}</p>
     {% if lookup_result.breaches %}
     <ul class="breach-incidents">{% for breach in lookup_result.breaches %}<li><h3>{{ breach.title }}</h3>{% if breach.date %}<p><strong>Fecha de filtración:</strong> {{ breach.date }}</p>{% endif %}{% if breach.data_classes %}<p><strong>Tipos de datos expuestos:</strong> {{ breach.data_classes|join:', ' }}</p>{% endif %}</li>{% endfor %}</ul>
     {% if is_free_lookup %}<p class="muted">La consulta básica informa nombres de incidentes; no confirma qué datos concretos de tu cuenta se expusieron.</p>{% endif %}
     {% endif %}
-    {% if lookup_result.found %}<div class="email-recommendation"><h3>Qué hacer ahora</h3><p>Cambia las contraseñas reutilizadas en el servicio afectado y en otras cuentas. Activa la verificación en dos pasos y revisa los accesos recientes desde el sitio oficial. Desconfía de mensajes que pidan códigos o pagos por una supuesta filtración.</p></div>{% endif %}
+    {% if lookup_result.found %}<div class="email-recommendation"><h3>Qué hacer ahora</h3><ol class="breach-actions"><li><strong>Cambia las contraseñas reutilizadas</strong> en el servicio afectado y en otras cuentas.</li><li><strong>Activa la verificación en dos pasos.</strong></li><li><strong>Revisa los accesos recientes</strong> desde el sitio oficial.</li><li><strong>Desconfía de mensajes que pidan códigos o pagos</strong> por una supuesta filtración.</li></ol></div>{% endif %}
     <p class="muted">{% if lookup_source %}Fuente: <a href="{{ lookup_source.url }}" target="_blank" rel="noopener noreferrer">{{ lookup_source.name }}</a>. {% endif %}Un registro puede corresponder a un incidente antiguo. Esta consulta no identifica al responsable ni confirma acceso actual a tu cuenta.</p>
 </section>
 {% endif %}
