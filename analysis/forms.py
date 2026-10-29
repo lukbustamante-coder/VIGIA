@@ -39,8 +39,14 @@ class BreachLookupForm(forms.Form):
     )
     consent = forms.BooleanField(
         label="Confirmo que esta cuenta es mía o que tengo autorización para consultarla",
-        help_text="La dirección completa se enviará a Have I Been Pwned. VIGIA no pide contraseñas ni guarda el correo consultado o el resultado en el historial.",
     )
+
+    def __init__(self, *args, provider_name="XposedOrNot", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["consent"].help_text = (
+            f"La dirección completa se enviará a {provider_name}. VIGIA no pide contraseñas "
+            "ni guarda el correo consultado o el resultado en el historial."
+        )
 
 
 class URLAnalysisForm(forms.Form):

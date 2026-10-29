@@ -1,42 +1,64 @@
-# Filtraciones de cuentas
+# Filtraciones de cuentas: opción gratuita
 
-La cuarta pestaña, `/analisis/filtraciones/`, permite consultar exposición de un correo mediante Have I Been Pwned (HIBP), o abrir fuentes externas para una consulta manual. Requiere iniciar sesión en VIGIA. No pide contraseñas ni busca contraseñas filtradas.
+La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin suscripción ni clave. Requiere SSO y autorización por consulta. También permite abrir fuentes externas para consultar manualmente. No solicita contraseñas.
 
-## Fuentes de referencia
+## Fuentes
 
-| Servicio | Alcance de referencia | Integración incluida |
+| Servicio | Consulta manual | API en VIGIA |
 | --- | --- | --- |
-| [Have I Been Pwned](https://haveibeenpwned.com/) | Correos presentes en incidentes conocidos. [API v3 documentada](https://haveibeenpwned.com/API/v3); la búsqueda automática de cuentas requiere suscripción y clave propia. | Adaptador API opcional y enlace manual. |
-| [HPI Identity Leak Checker](https://sec.hpi.de/ilc/) | Comprobación de exposición de una dirección de correo del Hasso Plattner Institute. | Enlace de consulta manual; sin envío automático desde VIGIA. |
-| [F-Secure Identity Theft Checker](https://www.f-secure.com/en/identity-theft-checker) | Comprobación de exposición asociada a un correo. | Enlace de consulta manual; sin envío automático desde VIGIA. |
-| [Malwarebytes Digital Footprint](https://www.malwarebytes.com/digital-footprint) | Revisión de exposición de datos vinculados a una cuenta. | Enlace de consulta manual; sin envío automático desde VIGIA. |
+| [XposedOrNot](https://xposedornot.com/) | Gratuita | API básica gratuita sin clave; proveedor predeterminado. |
+| [Have I Been Pwned](https://haveibeenpwned.com/) | Búsqueda web gratuita de correos | Alternativa opcional de pago con clave propia. |
+| [HPI Identity Leak Checker](https://sec.hpi.de/ilc/) | Comprobación pública de exposición de un correo | Solo enlace manual. |
+| [F-Secure Identity Theft Checker](https://www.f-secure.com/en/identity-theft-checker) | Comprobador público de exposición | Solo enlace manual; revisar condiciones actuales. |
+| [Malwarebytes Digital Footprint](https://www.malwarebytes.com/digital-footprint) | Herramienta pública de revisión de exposición | Solo enlace manual; revisar condiciones actuales. |
 
-El usuario aportó además [Have I Been Ransom](https://haveibeenransom.com/) como referencia. No se conecta por API ni se presenta como una fuente consultada: no se ha confirmado su API ni su cobertura. Una búsqueda de organizaciones afectadas por ransomware no equivale a una búsqueda de cuentas personales filtradas; hay que comprobar qué cubre cada servicio.
+Have I Been Ransom fue aportado como referencia, pero no se ha confirmado su API ni su cobertura. Las bases de organizaciones afectadas por ransomware y las bases de cuentas personales filtradas tienen alcances diferentes.
 
-Desde el entorno de desarrollo las páginas oficiales devolvieron un bloqueo del proxy (403) y la conexión directa no pudo resolver DNS. Por ello, **no se verificaron en vivo su disponibilidad, precios, condiciones ni cambios recientes**. Los enlaces son referencias conocidas; revisar documentación vigente, suscripción, permisos de uso y privacidad antes de activar un proveedor institucional. No hay scraping ni uso de endpoints internos no documentados. Las pruebas de integración usan respuestas simuladas y no una clave real del usuario.
+## Fuente de la integración gratuita
 
-## Activar la consulta automática
+Se verificó el 29 de octubre de 2026 la [documentación oficial publicada en el repositorio de XposedOrNot](https://github.com/XposedOrNot/XposedOrNot-Website/blob/master/api_doc.html), enlazada por el README oficial. La documentación confirma:
 
-En `.env` del servidor web:
+- `GET https://api.xposedornot.com/v1/check-email/{email}` sin clave para comprobaciones básicas.
+- Respuesta positiva `{"breaches":[["Incidente", "Otro"]], "email":"...", "status":"success"}`.
+- Respuesta sin coincidencias `{"Error":"Not found", "email":null}`. Se requiere ese formato, no un 404 genérico, para presentar ausencia de registros.
+- Límites gratuitos por IP y endpoint: **2 solicitudes por segundo, 25 por hora y 100 por día**. El proveedor describe esta modalidad para uso personal y de bajo volumen; planes de mayor capacidad son de pago.
+
+El sitio y el host API quedaron bloqueados por el proxy del entorno de desarrollo; el contenido oficial del repositorio sí pudo leerse. Se confirmó documentación y esquema, no la disponibilidad en vivo del endpoint. Las pruebas emplean respuestas simuladas. Revisar términos y privacidad antes de uso institucional; las condiciones pueden cambiar. No hay scraping, evasión de cuotas ni uso de endpoints internos.
+
+## Configuración
+
+Para la modalidad gratuita en el entorno del servidor web:
 
 ```dotenv
+BREACH_PROVIDER=xposedornot
+```
+
+No se necesita `HIBP_API_KEY`. Si `BREACH_PROVIDER` no existe, se elige XposedOrNot salvo que una instalación anterior tenga `HIBP_ENABLED=true`; se conserva entonces HIBP por compatibilidad. Establece explícitamente `BREACH_PROVIDER=xposedornot` para seleccionar la opción gratuita.
+
+Para deshabilitar las consultas automáticas y conservar los enlaces manuales:
+
+```dotenv
+BREACH_PROVIDER=disabled
+```
+
+La alternativa HIBP requiere una suscripción compatible:
+
+```dotenv
+BREACH_PROVIDER=hibp
 HIBP_ENABLED=true
 HIBP_API_KEY=tu_clave_local_de_HIBP
 ```
 
-Las claves de VirusTotal, Gemini, OpenAI o MXToolbox no sirven para HIBP. No se incluye ni se obtiene una suscripción. El worker de archivos no necesita esta clave y su entorno restringido no la recibe.
+Actualiza el repositorio, ejecuta `bash scripts/setup.sh`, carga `.env` y reinicia el servidor web. No hay nueva migración. El worker de archivos no interviene ni recibe claves HIBP.
 
-Después de actualizar el repositorio, ejecuta `bash scripts/setup.sh`, carga `.env` y reinicia el servidor web. Esta funcionalidad no añade una migración. Si no se habilita o falta la clave, la pestaña ofrece consultas manuales; no aparenta haber consultado un proveedor. Antes de su uso real, validar la clave y el plan con una cuenta cuya consulta esté autorizada.
+## Resultados y privacidad
 
-## Consulta y datos
-
-- Formulario POST con CSRF y SSO. Una casilla obligatoria confirma que la cuenta es propia o que existe autorización para consultarla, y explica que se enviará el correo completo a HIBP.
-- GET no realiza consultas, incluso si alguien añade un correo en la URL de VIGIA. No se precompletan correos en los enlaces externos ni se cargan scripts o imágenes de proveedores. Abrir una fuente externa no le envía el correo introducido en VIGIA.
-- Consulta HTTPS a `https://haveibeenpwned.com/api/v3/breachedaccount/{correo_codificado}`, con clave en `hibp-api-key`, User-Agent identificado, `truncateResponse=false` e `includeUnverified=false`. No sigue redirecciones y limita la respuesta a 1 MiB, 500 registros y textos acotados.
-- Solo proyecta nombre del incidente, fecha y tipos de datos afectados. No muestra descripciones HTML del proveedor ni datos concretos filtrados. Los valores se escapan antes de mostrarlos.
-- No guarda el correo consultado ni las respuestas en modelos, historial o sesión. Solo audita usuario, fecha y acción `breach_lookup`, sin dirección ni incidente. La página y el resultado tienen `Cache-Control: no-store`. El correo y la respuesta existen transitoriamente para servir la petición; el proveedor recibe el correo completo y tiene su propia política de conservación.
-- Reserva cuota antes de llamar al proveedor: hasta 20 consultas por usuario por hora y 200 globales por hora. Las reservas se serializan en PostgreSQL; SQLite es solo para desarrollo. Los errores del proveedor también consumen un intento local. No reintenta automáticamente. Un POST recargado manualmente es una nueva consulta.
-- HTTP 404 o una lista JSON vacía se interpretan como «Sin registros en la fuente consultada». Errores de autenticación, cuota, red, respuestas inválidas o timeout nunca se convierten en un resultado sin registros. Un resultado sin coincidencias no prueba ausencia de filtraciones. El proveedor puede excluir incidentes no verificados, sensibles, retirados u otros registros según sus reglas.
-- Una coincidencia indica exposición registrada, posiblemente antigua. No demuestra acceso actual a la cuenta ni identifica responsables. Recomendar cambiar contraseñas reutilizadas, activar segundo factor y revisar accesos desde los sitios oficiales.
-
-La consulta funciona en el proceso web (conexión 5 s, lectura 15 s), independiente del worker de archivos. La atribución visible a Have I Been Pwned identifica la única fuente de la consulta automática. Las fuentes manuales no se suman al resultado ni a un supuesto análisis de toda Internet.
+- El formulario POST con CSRF exige confirmar que la cuenta es propia o que hay autorización para consultarla. Identifica por nombre el único proveedor que recibirá la dirección completa. Nunca cambia automáticamente de proveedor después de un error.
+- GET no consulta nada, aunque se agregue un correo en la URL de VIGIA. Los enlaces manuales no contienen direcciones precompletadas, usan `noopener noreferrer` y no cargan scripts ni imágenes remotas.
+- Todas las consultas usan un host HTTPS fijo, correo codificado en la ruta, User-Agent identificado, conexión de 5 segundos y lectura de 15 segundos. No se siguen redirecciones. Respuesta máxima de 1 MiB, hasta 500 incidentes y textos acotados.
+- XposedOrNot devuelve nombres de incidentes; esta modalidad no inventa fechas, tipos de datos ni detalles que no se recibieron. HIBP proyecta nombres, fechas y categorías cuando están disponibles. Nunca se muestran contraseñas, datos concretos filtrados o descripciones HTML del proveedor. Todo valor se escapa.
+- No se guardan la dirección consultada ni el resultado en modelos, sesión o historial. Solo se auditan usuario, fecha y acción (`breach_lookup_xon` o `breach_lookup`). Los datos existen transitoriamente para responder a la petición y el proveedor tiene su propia política de conservación. La respuesta tiene `Cache-Control: no-store`.
+- Las cuotas se reservan antes del HTTP y se serializan en PostgreSQL; SQLite es para desarrollo. XposedOrNot: máximo 20 consultas por usuario/hora, 25 globales/hora, 100 globales en 24 horas y una reserva por segundo. Esta cadencia es más conservadora que su límite por segundo. La cuota real puede incluir otras aplicaciones con la misma IP pública.
+- HIBP conserva el límite local de 20 consultas por usuario/hora y 200 globales/hora. Usa `truncateResponse=false` e `includeUnverified=false`. Fallos también consumen una reserva local; no hay reintentos automáticos. Recargar un POST manualmente es una nueva consulta.
+- Los límites, errores HTTP, timeout o respuestas inválidas nunca se convierten en «Sin registros». No se evade un 429 cambiando de IP o de proveedor.
+- No encontrar registros solo describe la base consultada. No garantiza ausencia de filtraciones ni seguridad actual de la cuenta. Una coincidencia puede ser antigua y no demuestra acceso actual ni identifica responsables. Se recomienda cambiar contraseñas reutilizadas, activar segundo factor y revisar accesos desde los sitios oficiales.

@@ -1,4 +1,4 @@
-"""Account exposure lookup through the documented HIBP v3 API, never password searches."""
+"""Account exposure through documented APIs; no password queries or automatic failover."""
 
 import json
 from datetime import date
@@ -7,13 +7,23 @@ from urllib.parse import quote
 import requests
 
 API = "https://haveibeenpwned.com/api/v3/breachedaccount/"
+XON_API = "https://api.xposedornot.com/v1/check-email/"
+PROVIDERS = {
+    "xposedornot": {"name": "XposedOrNot", "url": "https://xposedornot.com/"},
+    "hibp": {"name": "Have I Been Pwned", "url": "https://haveibeenpwned.com/"},
+}
 MAX_RESPONSE_BYTES = 1024 * 1024
 SOURCES = (
     {
+        **PROVIDERS["xposedornot"],
+        "description": "Consulta gratuita de correos en filtraciones conocidas. Su API básica funciona sin clave y tiene límites de uso.",
+        "mode": "Consulta web y API básica gratuitas",
+    },
+    {
         "name": "Have I Been Pwned",
         "url": "https://haveibeenpwned.com/",
-        "description": "Consulta de correos en filtraciones conocidas. Es la fuente de la consulta automática de VIGIA cuando está habilitada.",
-        "mode": "Consulta web y API con suscripción",
+        "description": "Puedes consultar un correo gratuitamente desde su página web. Su API de búsqueda de cuentas requiere una suscripción independiente.",
+        "mode": "Consulta web gratuita; API de pago",
     },
     {
         "name": "HPI Identity Leak Checker",
@@ -34,6 +44,66 @@ SOURCES = (
         "mode": "Consulta en el sitio del proveedor",
     },
 )
+
+
+def lookup_xposedornot(email):
+    response = None
+    try:
+        response = requests.get(
+            XON_API + quote(email, safe=""),
+            headers={"User-Agent": "VIGIA-Account-Exposure-Check", "Accept": "application/json"},
+            timeout=(5, 15),
+            allow_redirects=False,
+            stream=True,
+        )
+        if response.status_code not in {200, 404}:
+            return {
+                "status": {429: "quota_exceeded", 403: "access_denied"}.get(
+                    response.status_code, "unavailable"
+                )
+            }
+        body = bytearray()
+        for chunk in response.iter_content(chunk_size=65536):
+            body.extend(chunk)
+            if len(body) > MAX_RESPONSE_BYTES:
+                return {"status": "invalid_response"}
+        payload = json.loads(body)
+        if not isinstance(payload, dict):
+            return {"status": "invalid_response"}
+        # A generic proxy/route 404 is not proof of absence from the breach database.
+        if (
+            payload.get("Error") == "Not found"
+            and "email" in payload
+            and payload["email"] is None
+            and "breaches" not in payload
+        ):
+            return {"status": "no_records", "breaches": []}
+        if response.status_code != 200 or payload.get("status") != "success":
+            return {"status": "invalid_response"}
+        groups = payload.get("breaches")
+        if not isinstance(groups, list) or len(groups) != 1 or not isinstance(groups[0], list):
+            return {"status": "invalid_response"}
+        names = groups[0]
+        if (
+            not names
+            or len(names) > 500
+            or any(not isinstance(name, str) or not name.strip() for name in names)
+        ):
+            return {"status": "invalid_response"}
+        return {
+            "status": "found",
+            "breaches": [
+                {"title": name[:200], "date": "", "data_classes": []}
+                for name in dict.fromkeys(names)
+            ],
+        }
+    except requests.Timeout:
+        return {"status": "timeout"}
+    except (requests.RequestException, ValueError, TypeError):
+        return {"status": "unavailable"}
+    finally:
+        if response is not None:
+            response.close()
 
 
 def lookup_account(email, key):
@@ -121,12 +191,12 @@ MESSAGES = {
     "found": (
         "warning",
         "Se encontraron registros de exposición",
-        "Este correo aparece en las filtraciones indicadas por Have I Been Pwned. No demuestra que alguien tenga acceso actualmente a tu cuenta.",
+        "Este correo aparece en las filtraciones indicadas por {provider}. No demuestra que alguien tenga acceso actualmente a tu cuenta.",
     ),
     "no_records": (
         "neutral",
         "Sin registros en la fuente consultada",
-        "Have I Been Pwned no devolvió registros para este correo. Puede haber filtraciones que no estén incluidas; este resultado no garantiza que la cuenta esté protegida.",
+        "{provider} no devolvió registros para este correo. Puede haber filtraciones que no estén incluidas; este resultado no garantiza que la cuenta esté protegida.",
     ),
     "quota_exceeded": (
         "neutral",
@@ -146,7 +216,7 @@ MESSAGES = {
 }
 
 
-def present(result):
+def present(result, provider="hibp"):
     tone, title, message = MESSAGES.get(
         result.get("status"),
         (
@@ -158,7 +228,9 @@ def present(result):
     return {
         "tone": tone,
         "title": title,
-        "message": message,
+        "message": message.format(
+            provider=PROVIDERS.get(provider, {"name": "El proveedor"})["name"]
+        ),
         "found": result.get("status") == "found",
         "breaches": [
             {

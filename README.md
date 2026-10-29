@@ -1,8 +1,8 @@
 # VIGIA
 
-Portal defensivo en **Python 3.12 y Django 5.2 LTS**, con interfaz en español. Tres módulos: correo **EML**, archivos **PDF, ZIP, DOC/DOCX, XLS/XLSX, PPT/PPTX, ODT/ODS/ODP, TXT, CSV, RTF, PNG y JPEG**, y reputación de **URL HTTP/HTTPS**.
+Portal defensivo en **Python 3.12 y Django 5.2 LTS**, con interfaz en español. Incluye análisis de correo **EML**, archivos **PDF, ZIP, DOC/DOCX, XLS/XLSX, PPT/PPTX, ODT/ODS/ODP, TXT, CSV, RTF, PNG y JPEG**, reputación de **URL HTTP/HTTPS** y consulta de **filtraciones de cuentas**.
 
-Después de ingresar con SSO, la barra superior permite cambiar entre **Análisis de correo** (`/analisis/correos/`), **Análisis de archivos** (`/analisis/archivos/`) y **Análisis de URL** (`/analisis/urls/`). Cada módulo tiene su formulario e historial independiente. La página inicial abre el módulo de correo. Los usuarios ven sus propios análisis y los administradores los de todos, filtrados por módulo. Consulta [el alcance y la configuración de URLs](docs/urls.md).
+Después de ingresar con SSO, la barra superior permite cambiar entre **Análisis de correo** (`/analisis/correos/`), **Análisis de archivos** (`/analisis/archivos/`), **Análisis de URL** (`/analisis/urls/`) y **Filtraciones** (`/analisis/filtraciones/`). Correo, archivos y URL tienen historiales independientes; las consultas de filtraciones no guardan la dirección ni el resultado. La página inicial abre el módulo de correo. Los usuarios ven sus propios análisis y los administradores los de todos, filtrados por módulo. Consulta [el alcance y la configuración de URLs](docs/urls.md).
 
 En correo y archivos, el área celeste permite elegir un archivo desde el explorador o arrastrarlo sobre la página. Se selecciona un archivo por análisis, con un máximo de 20 MB y los formatos del módulo. El envío se realiza al pulsar «Enviar a analizar»; al cambiar de archivo se desmarcan las autorizaciones de servicios externos para revisarlas de nuevo. La validación de formato, firma y tamaño se mantiene en el servidor aunque JavaScript no esté disponible.
 
@@ -133,4 +133,4 @@ Antes de producción: prueba de SSO real con roles usuario/admin y revocación, 
 
 ## Filtraciones de cuentas
 
-La pestaña «Filtraciones» ofrece fuentes de consulta manual y una integración opcional con Have I Been Pwned para revisar un correo con autorización. Requiere `HIBP_ENABLED=true` y una clave `HIBP_API_KEY` con suscripción compatible; sin configuración no se realizan consultas automáticas. No pide contraseñas ni guarda direcciones o resultados en el historial. Consulta [fuentes, configuración y límites](docs/account-breaches.md).
+La pestaña «Filtraciones» permite revisar un correo con autorización mediante **XposedOrNot**, con API básica gratuita sin clave. Configura `BREACH_PROVIDER=xposedornot`; se respetan límites locales de 25 consultas globales/hora y 100/24 horas. También ofrece enlaces para consultas manuales y conserva HIBP como alternativa opcional de pago. No pide contraseñas ni guarda direcciones o resultados en el historial. Consulta [fuentes, configuración y límites](docs/account-breaches.md).

@@ -19,8 +19,8 @@ from django.views.decorators.http import (
 )
 
 from .auth import is_admin
+from .breaches import PROVIDERS, lookup_account, lookup_xposedornot
 from .breaches import SOURCES as BREACH_SOURCES
-from .breaches import lookup_account
 from .breaches import present as present_breach_result
 from .forms import FILE_EXTENSIONS, BreachLookupForm, UploadForm, URLAnalysisForm
 from .labels import VERDICT_LABELS
@@ -50,35 +50,54 @@ def quota_exceeded(user):
 @login_required
 @require_http_methods(["GET", "POST"])
 def breach_lookup(request):
-    enabled = settings.HIBP_ENABLED and bool(settings.HIBP_API_KEY)
-    form = BreachLookupForm(request.POST if request.method == "POST" else None)
+    provider = settings.BREACH_PROVIDER
+    source = PROVIDERS.get(provider)
+    enabled = provider == "xposedornot" or (
+        provider == "hibp" and settings.HIBP_ENABLED and bool(settings.HIBP_API_KEY)
+    )
+    form = BreachLookupForm(
+        request.POST if request.method == "POST" else None,
+        provider_name=source["name"] if source else "el proveedor configurado",
+    )
     result = None
     status = 200
     if request.method == "POST":
         if not form.is_valid():
             status = 400
         elif not enabled:
-            result = present_breach_result({"status": "not_configured"})
+            result = present_breach_result({"status": "not_configured"}, provider=provider)
         else:
             from django.contrib.auth import get_user_model
 
             with transaction.atomic():
                 # Serialize quota reservations globally on PostgreSQL; never hold during HTTP.
                 get_user_model().objects.select_for_update().order_by("pk").first()
-                recent = AuditEvent.objects.filter(
-                    action="breach_lookup", created_at__gte=timezone.now() - timedelta(hours=1)
+                action = "breach_lookup_xon" if provider == "xposedornot" else "breach_lookup"
+                now = timezone.now()
+                events = AuditEvent.objects.filter(action=action)
+                recent = events.filter(created_at__gte=now - timedelta(hours=1))
+                limited = (
+                    recent.count() >= (25 if provider == "xposedornot" else 200)
+                    or recent.filter(actor=request.user).count() >= 20
                 )
-                limited = recent.count() >= 200 or recent.filter(actor=request.user).count() >= 20
+                if provider == "xposedornot":
+                    limited |= (
+                        events.filter(created_at__gte=now - timedelta(hours=24)).count() >= 100
+                        or events.filter(created_at__gte=now - timedelta(seconds=1)).exists()
+                    )
                 if not limited:
                     # Do not retain the queried address, provider response or breach names.
-                    AuditEvent.objects.create(actor=request.user, action="breach_lookup")
+                    AuditEvent.objects.create(actor=request.user, action=action)
             if limited:
-                result = present_breach_result({"status": "quota_exceeded"})
+                result = present_breach_result({"status": "quota_exceeded"}, provider=provider)
                 status = 429
             else:
-                result = present_breach_result(
-                    lookup_account(form.cleaned_data["email"], settings.HIBP_API_KEY)
+                raw_result = (
+                    lookup_xposedornot(form.cleaned_data["email"])
+                    if provider == "xposedornot"
+                    else lookup_account(form.cleaned_data["email"], settings.HIBP_API_KEY)
                 )
+                result = present_breach_result(raw_result, provider=provider)
     return render(
         request,
         "analysis/breach_lookup.html",
@@ -87,6 +106,8 @@ def breach_lookup(request):
             "admin": is_admin(request),
             "form": form,
             "lookup_enabled": enabled,
+            "lookup_source": source,
+            "is_free_lookup": provider == "xposedornot",
             "lookup_result": result,
             "breach_sources": BREACH_SOURCES,
         },

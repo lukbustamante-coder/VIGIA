@@ -12,18 +12,20 @@
     </form>
     {% else %}
     <p>La consulta automática no está habilitada en esta instalación. Puedes consultar tu correo directamente en las fuentes que aparecen más abajo.</p>
-    {% if admin %}<p class="muted">Para habilitarla, configura la integración con una clave API de Have I Been Pwned y una suscripción compatible. Las claves de VirusTotal, MXToolbox y Gemini son independientes.</p>{% endif %}
+    {% if admin %}<p class="muted">Puedes habilitar XposedOrNot para consultas básicas gratuitas sin clave. Have I Been Pwned ofrece una integración alternativa con suscripción.</p>{% endif %}
     {% endif %}
-    <p class="muted">Fuente de la consulta automática: <a href="https://haveibeenpwned.com/" target="_blank" rel="noopener noreferrer">Have I Been Pwned</a>. La cobertura depende de sus registros y no abarca todas las filtraciones.</p>
+    {% if lookup_source %}<p class="muted">Fuente de la consulta automática: <a href="{{ lookup_source.url }}" target="_blank" rel="noopener noreferrer">{{ lookup_source.name }}</a>. La cobertura depende de sus registros y no abarca todas las filtraciones.</p>{% endif %}
+    {% if is_free_lookup and lookup_enabled %}<p class="muted">Consulta básica gratuita y sin clave. El proveedor limita las búsquedas a 25 por hora y 100 por día por IP; estos límites se comparten entre los usuarios de esta instalación.</p>{% endif %}
 </section>
 {% if lookup_result %}
 <section class="card breach-result breach-result-{{ lookup_result.tone }}" aria-labelledby="breach-result-heading" role="status">
     <h2 id="breach-result-heading">{{ lookup_result.title }}</h2><p>{{ lookup_result.message }}</p>
     {% if lookup_result.breaches %}
-    <ul class="breach-incidents">{% for breach in lookup_result.breaches %}<li><h3>{{ breach.title }}</h3><p><strong>Fecha de filtración:</strong> {{ breach.date|default:'No informada' }}</p><p><strong>Tipos de datos expuestos:</strong> {{ breach.data_classes|join:', '|default:'No informados' }}</p></li>{% endfor %}</ul>
+    <ul class="breach-incidents">{% for breach in lookup_result.breaches %}<li><h3>{{ breach.title }}</h3>{% if breach.date %}<p><strong>Fecha de filtración:</strong> {{ breach.date }}</p>{% endif %}{% if breach.data_classes %}<p><strong>Tipos de datos expuestos:</strong> {{ breach.data_classes|join:', ' }}</p>{% endif %}</li>{% endfor %}</ul>
+    {% if is_free_lookup %}<p class="muted">La consulta básica informa nombres de incidentes; no confirma qué datos concretos de tu cuenta se expusieron.</p>{% endif %}
     {% endif %}
     {% if lookup_result.found %}<div class="email-recommendation"><h3>Qué hacer ahora</h3><p>Cambia las contraseñas reutilizadas en el servicio afectado y en otras cuentas. Activa la verificación en dos pasos y revisa los accesos recientes desde el sitio oficial. Desconfía de mensajes que pidan códigos o pagos por una supuesta filtración.</p></div>{% endif %}
-    <p class="muted">Fuente: <a href="https://haveibeenpwned.com/" target="_blank" rel="noopener noreferrer">Have I Been Pwned</a>. Un registro puede corresponder a un incidente antiguo. Esta consulta no identifica al responsable ni confirma acceso actual a tu cuenta.</p>
+    <p class="muted">{% if lookup_source %}Fuente: <a href="{{ lookup_source.url }}" target="_blank" rel="noopener noreferrer">{{ lookup_source.name }}</a>. {% endif %}Un registro puede corresponder a un incidente antiguo. Esta consulta no identifica al responsable ni confirma acceso actual a tu cuenta.</p>
 </section>
 {% endif %}
 <section aria-labelledby="breach-sources-heading">

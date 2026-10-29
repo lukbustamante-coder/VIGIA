@@ -35,6 +35,7 @@ def config(settings):
     settings.SECURE_SSL_REDIRECT = False
     settings.HIBP_ENABLED = True
     settings.HIBP_API_KEY = "test-key"
+    settings.BREACH_PROVIDER = "hibp"
 
 
 @pytest.fixture
