@@ -29,6 +29,20 @@ FILE_EXTENSIONS = {
 }
 
 
+class BreachLookupForm(forms.Form):
+    email = forms.EmailField(
+        label="Correo que quieres consultar",
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={"placeholder": "nombre@dominio.cl", "autocomplete": "off", "spellcheck": "false"}
+        ),
+    )
+    consent = forms.BooleanField(
+        label="Confirmo que esta cuenta es mía o que tengo autorización para consultarla",
+        help_text="La dirección completa se enviará a Have I Been Pwned. VIGIA no pide contraseñas ni guarda el correo consultado o el resultado en el historial.",
+    )
+
+
 class URLAnalysisForm(forms.Form):
     url = forms.CharField(
         label="URL que quieres analizar",

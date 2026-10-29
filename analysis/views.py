@@ -11,10 +11,18 @@ from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST, require_safe
+from django.views.decorators.http import (
+    require_GET,
+    require_http_methods,
+    require_POST,
+    require_safe,
+)
 
 from .auth import is_admin
-from .forms import FILE_EXTENSIONS, UploadForm, URLAnalysisForm
+from .breaches import SOURCES as BREACH_SOURCES
+from .breaches import lookup_account
+from .breaches import present as present_breach_result
+from .forms import FILE_EXTENSIONS, BreachLookupForm, UploadForm, URLAnalysisForm
 from .labels import VERDICT_LABELS
 from .models import AuditEvent, Submission
 from .presentation import email_explanation, result_summary, url_categorization
@@ -37,6 +45,53 @@ def quota_exceeded(user):
         status__in=["queued", "running", "waiting_vt", "polling_vt"]
     ).count()
     return recent >= 20 or pending >= 200
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def breach_lookup(request):
+    enabled = settings.HIBP_ENABLED and bool(settings.HIBP_API_KEY)
+    form = BreachLookupForm(request.POST if request.method == "POST" else None)
+    result = None
+    status = 200
+    if request.method == "POST":
+        if not form.is_valid():
+            status = 400
+        elif not enabled:
+            result = present_breach_result({"status": "not_configured"})
+        else:
+            from django.contrib.auth import get_user_model
+
+            with transaction.atomic():
+                # Serialize quota reservations globally on PostgreSQL; never hold during HTTP.
+                get_user_model().objects.select_for_update().order_by("pk").first()
+                recent = AuditEvent.objects.filter(
+                    action="breach_lookup", created_at__gte=timezone.now() - timedelta(hours=1)
+                )
+                limited = recent.count() >= 200 or recent.filter(actor=request.user).count() >= 20
+                if not limited:
+                    # Do not retain the queried address, provider response or breach names.
+                    AuditEvent.objects.create(actor=request.user, action="breach_lookup")
+            if limited:
+                result = present_breach_result({"status": "quota_exceeded"})
+                status = 429
+            else:
+                result = present_breach_result(
+                    lookup_account(form.cleaned_data["email"], settings.HIBP_API_KEY)
+                )
+    return render(
+        request,
+        "analysis/breach_lookup.html",
+        {
+            "module": "breach",
+            "admin": is_admin(request),
+            "form": form,
+            "lookup_enabled": enabled,
+            "lookup_result": result,
+            "breach_sources": BREACH_SOURCES,
+        },
+        status=status,
+    )
 
 
 @require_GET

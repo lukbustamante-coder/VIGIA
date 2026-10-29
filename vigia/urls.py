@@ -9,6 +9,7 @@ urlpatterns = [
     path("analisis/archivos/", views.dashboard, {"module": "file"}, name="file_analysis"),
     path("analisis/urls/", views.dashboard, {"module": "url"}, name="url_analysis"),
     path("analisis/urls/enviar/", views.submit_url, name="submit_url"),
+    path("analisis/filtraciones/", views.breach_lookup, name="breach_lookup"),
     path("auth/login/", auth.sign_in, name="login"),
     path("auth/callback/", auth.callback, name="callback"),
     path("auth/logout/", auth.sign_out, name="logout"),

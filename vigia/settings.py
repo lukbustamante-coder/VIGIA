@@ -108,6 +108,8 @@ VT_API_KEY = os.getenv("VT_API_KEY", "")
 VT_ALLOW_SAMPLE_UPLOAD = os.getenv("VT_ALLOW_SAMPLE_UPLOAD", "false").lower() == "true"
 VT_ALLOW_URL_SUBMISSION = os.getenv("VT_ALLOW_URL_SUBMISSION", "false").lower() == "true"
 VT_ALLOW_EMAIL_RESOURCES = os.getenv("VT_ALLOW_EMAIL_RESOURCES", "false").lower() == "true"
+HIBP_ENABLED = os.getenv("HIBP_ENABLED", "false").lower() == "true"
+HIBP_API_KEY = os.getenv("HIBP_API_KEY", "").strip()
 AI_API_KEY = os.getenv("AI_API_KEY", "")
 AI_MODEL = os.getenv("AI_MODEL", "gpt-4.1-mini")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "openai")

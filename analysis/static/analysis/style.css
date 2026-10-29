@@ -1263,3 +1263,53 @@ footer {
 .history-result--pending { --result-ink: var(--institution-blue); --result-bg: var(--surface-blue); }
 .history-result-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
 .history-result:hover { text-decoration: underline; box-shadow: 0 0 0 2px var(--line); }
+
+/* Four modules remain usable without horizontal scrolling. */
+.module-nav {
+  flex-wrap: wrap;
+}
+.breach-form input[type=email] {
+  width: 100%;
+}
+.breach-sources {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.breach-sources .card {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.breach-result-warning {
+  border-left: 4px solid var(--warning);
+}
+.breach-result-neutral {
+  border-left: 4px solid var(--neutral);
+}
+.breach-incidents {
+  padding: 0;
+  list-style: none;
+}
+.breach-incidents li {
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  overflow-wrap: anywhere;
+}
+.breach-incidents h3 {
+  margin: 0 0 8px;
+}
+.breach-incidents p {
+  margin: 6px 0;
+}
+@media (max-width:700px) {
+  .module-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .breach-sources {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

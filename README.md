@@ -130,3 +130,7 @@ Las pruebas verifican carga → worker real → resultado → borrado de la mues
 8. Centraliza auditoría y métricas (cola, latencia, cuotas, fallos), aplica backups/restauración y un procedimiento de incidentes. El registro local no es inmutable ni reemplaza un SIEM.
 
 Antes de producción: prueba de SSO real con roles usuario/admin y revocación, validación de cuotas reales de API, análisis de dependencias, pruebas de carga y revisión de seguridad independiente. Lee [el modelo de seguridad](docs/security.md).
+
+## Filtraciones de cuentas
+
+La pestaña «Filtraciones» ofrece fuentes de consulta manual y una integración opcional con Have I Been Pwned para revisar un correo con autorización. Requiere `HIBP_ENABLED=true` y una clave `HIBP_API_KEY` con suscripción compatible; sin configuración no se realizan consultas automáticas. No pide contraseñas ni guarda direcciones o resultados en el historial. Consulta [fuentes, configuración y límites](docs/account-breaches.md).

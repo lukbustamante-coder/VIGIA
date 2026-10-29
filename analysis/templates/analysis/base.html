@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIGIA · Análisis de amenazas</title>{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'analysis/favicon.svg' %}"><link rel="stylesheet" href="{% static 'analysis/style.css' %}?v=upload-button-1">{% block extra_head %}{% endblock %}</head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIGIA · Análisis de amenazas</title>{% load static %}<link rel="icon" type="image/svg+xml" href="{% static 'analysis/favicon.svg' %}"><link rel="stylesheet" href="{% static 'analysis/style.css' %}?v=breach-lookup-1">{% block extra_head %}{% endblock %}</head>
 <body><header class="site-header">
 <a class="brand" href="{% url 'dashboard' %}" aria-label="VIGIA · Inicio"><img class="brand-logo" src="{% static 'analysis/vigia-logo.png' %}" alt="VIGIA · Centro de análisis de amenazas" width="192" height="64" decoding="async" fetchpriority="high"></a>
 {% if user.is_authenticated %}
@@ -7,6 +7,7 @@
 <a href="{% url 'email_analysis' %}"{% if module == 'eml' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">✉</span> Análisis de correo</a>
 <a href="{% url 'file_analysis' %}"{% if module == 'file' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Análisis de archivos</a>
 <a href="{% url 'url_analysis' %}"{% if module == 'url' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">↗</span> Análisis de URL</a>
+<a href="{% url 'breach_lookup' %}"{% if module == 'breach' %} class="active" aria-current="page"{% endif %}><span aria-hidden="true">◎</span> Filtraciones</a>
 </nav>
 <div class="account-menu"><span class="account-label">{% if request.session.oidc_display_name %}{{ request.session.oidc_display_name }}{% elif user.get_full_name %}{{ user.get_full_name }}{% else %}Sesión SSO{% endif %}<small>{% if admin %}Administrador{% else %}Usuario{% endif %}</small></span><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary">Cerrar sesión</button></form></div>
 {% endif %}</header><main>{% block content %}{% endblock %}</main><footer>Análisis defensivo · Inspección local sin ejecución · Acceso restringido</footer></body></html>
