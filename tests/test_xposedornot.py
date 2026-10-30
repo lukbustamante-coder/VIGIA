@@ -41,9 +41,6 @@ def config(settings):
 def signed_in(client, db):
     user = get_user_model().objects.create_user(username="free-reader")
     client.force_login(user)
-    session = client.session
-    session["oidc_email"] = "test@example.org"
-    session.save()
     return client, user
 
 
@@ -106,7 +103,10 @@ def test_large_response_timeout_and_duplicate_incidents():
 def test_tab_has_free_search_without_hibp_subscription_and_identifies_recipient(signed_in):
     client, _ = signed_in
     with patch("analysis.views.lookup_xposedornot") as lookup:
-        html = client.get(reverse("breach_lookup")).content.decode()
+        page = client.get(reverse("breach_lookup"))
+        html = page.content.decode()
+    assert not page.context["form"].fields["email"].disabled
+    assert "No recibimos un correo verificado" not in html
     assert 'name="email"' in html and "API básica gratuitas" in html
     assert "La dirección completa se enviará a XposedOrNot" in html
     assert "25 por hora y 100 por día" in html
@@ -115,9 +115,6 @@ def test_tab_has_free_search_without_hibp_subscription_and_identifies_recipient(
 
 def test_free_lookup_displays_only_selected_source_without_fallback_or_storage(signed_in):
     client, user = signed_in
-    session = client.session
-    session["oidc_email"] = "private@example.org"
-    session.save()
     with (
         patch("analysis.breaches.requests.get", return_value=response(body=found())) as get,
         patch("analysis.views.lookup_account") as paid,
@@ -134,8 +131,7 @@ def test_free_lookup_displays_only_selected_source_without_fallback_or_storage(s
     assert Submission.objects.count() == 0
     audit = AuditEvent.objects.get(actor=user, action="breach_lookup_xon")
     assert "private@example.org" not in str(audit.__dict__)
-    assert client.session["oidc_email"] == "private@example.org"
-    assert "ExampleIncident" not in str(dict(client.session))
+    assert "private@example.org" not in str(dict(client.session))
 
 
 @pytest.mark.parametrize("window", ["second", "hour", "day"])

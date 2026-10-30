@@ -62,7 +62,7 @@ SOURCE_GUIDES = {
         "logo": "analysis/providers/xposedornot.ico",
         "initials": "XON",
         "steps": [
-            "Para consultar desde VIGIA, revisa el correo de tu sesión SSO y autoriza la búsqueda en el formulario.",
+            "Para consultar desde VIGIA, introduce tu correo en el formulario y autoriza la búsqueda.",
             "También puedes abrir XposedOrNot y realizar la consulta directamente allí.",
         ],
         "note": "Solo la consulta autorizada desde VIGIA actualiza el estado de esta tarjeta.",

@@ -52,9 +52,6 @@ def test_lookup_renders_six_source_rows_without_inventing_external_results(clien
     settings.BREACH_PROVIDER = "xposedornot"
     user = get_user_model().objects.create_user(username="source-table-reader")
     client.force_login(user)
-    session = client.session
-    session["oidc_email"] = "private@example.org"
-    session.save()
     raw_result = {
         "status": "found",
         "breaches": [{"title": "ExampleIncident", "date": "", "data_classes": []}],
@@ -104,9 +101,6 @@ def test_get_shows_sources_without_sending_queries_or_triggering_verification(cl
     settings.BREACH_PROVIDER = "xposedornot"
     user = get_user_model().objects.create_user(username="source-table-preview")
     client.force_login(user)
-    session = client.session
-    session["oidc_email"] = "private@example.org"
-    session.save()
     with (
         patch("analysis.breaches.requests.get") as get,
         patch("analysis.breaches.requests.post") as post,

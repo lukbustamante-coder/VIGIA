@@ -42,9 +42,6 @@ def config(settings):
 def signed_in(client, db):
     user = get_user_model().objects.create_user(username="breach-reader")
     client.force_login(user)
-    session = client.session
-    session["oidc_email"] = "test@example.org"
-    session.save()
     return client, user
 
 
@@ -154,9 +151,6 @@ def test_invalid_or_unconsented_queries_are_rejected(signed_in, email, consent):
 def test_valid_lookup_displays_metadata_but_does_not_retain_address_or_response(signed_in):
     client, user = signed_in
     address = "private-query@example.org"
-    session = client.session
-    session["oidc_email"] = address
-    session.save()
     with patch(
         "analysis.breaches.requests.get",
         return_value=api_response(
@@ -172,9 +166,7 @@ def test_valid_lookup_displays_metadata_but_does_not_retain_address_or_response(
     assert Submission.objects.count() == 0
     audit = AuditEvent.objects.get(action="breach_lookup", actor=user)
     assert audit.submission_id is None
-    assert address not in str(audit.__dict__)
-    assert client.session["oidc_email"] == address
-    assert "Example incident" not in str(dict(client.session))
+    assert address not in str(audit.__dict__) and address not in str(dict(client.session))
     assert "ni confirma acceso actual" in html
 
 

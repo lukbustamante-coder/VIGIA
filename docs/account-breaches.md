@@ -1,6 +1,6 @@
 # Filtraciones de cuentas: opción gratuita
 
-La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin suscripción ni clave. Requiere SSO y autorización por consulta. Solo permite consultar el correo verificado de la persona conectada, también para administradores. Los sitios externos conservan sus propios formularios y VIGIA no puede restringir lo que se introduzca allí. No solicita contraseñas.
+La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin suscripción ni clave. Requiere SSO y autorización por consulta. También permite abrir fuentes externas para consultar manualmente. No solicita contraseñas.
 
 ## Fuentes
 
@@ -56,11 +56,11 @@ Actualiza el repositorio, ejecuta `bash scripts/setup.sh`, carga `.env` y reinic
 
 ## Resultados y privacidad
 
-- El formulario POST con CSRF exige autorizar el envío del correo de la sesión al proveedor identificado. El campo se completa desde SSO y está deshabilitado. En el servidor se utiliza únicamente la dirección de la sesión; enviar otra en un POST se rechaza antes de reservar cuota o llamar a la API. Nunca cambia automáticamente de proveedor después de un error.
+- El formulario POST con CSRF exige confirmar que la cuenta es propia o que hay autorización para consultarla. Identifica por nombre el único proveedor que recibirá la dirección completa. Nunca cambia automáticamente de proveedor después de un error.
 - GET no consulta nada, aunque se agregue un correo en la URL de VIGIA. Los enlaces manuales no contienen direcciones precompletadas, usan `noopener noreferrer` y no cargan scripts ni imágenes remotas.
 - Todas las consultas usan un host HTTPS fijo, correo codificado en la ruta, User-Agent identificado, conexión de 5 segundos y lectura de 15 segundos. No se siguen redirecciones. Respuesta máxima de 1 MiB, hasta 500 incidentes y textos acotados.
 - XposedOrNot devuelve nombres de incidentes; esta modalidad no inventa fechas, tipos de datos ni detalles que no se recibieron. HIBP proyecta nombres, fechas y categorías cuando están disponibles. Nunca se muestran contraseñas, datos concretos filtrados o descripciones HTML del proveedor. Todo valor se escapa.
-- El correo verificado del inicio de sesión se conserva como `oidc_email` en la sesión SSO, con su misma caducidad y eliminación al cerrar sesión. No se crean registros del correo consultado ni de los resultados en modelos o historial, ni se guardan los resultados en sesión. Solo se auditan usuario, fecha y acción (`breach_lookup_xon` o `breach_lookup`). El proveedor tiene su propia política de conservación. La respuesta tiene `Cache-Control: no-store`.
+- No se guardan la dirección consultada ni el resultado en modelos, sesión o historial. Solo se auditan usuario, fecha y acción (`breach_lookup_xon` o `breach_lookup`). Los datos existen transitoriamente para responder a la petición y el proveedor tiene su propia política de conservación. La respuesta tiene `Cache-Control: no-store`.
 - Las cuotas se reservan antes del HTTP y se serializan en PostgreSQL; SQLite es para desarrollo. XposedOrNot: máximo 20 consultas por usuario/hora, 25 globales/hora, 100 globales en 24 horas y una reserva por segundo. Esta cadencia es más conservadora que su límite por segundo. La cuota real puede incluir otras aplicaciones con la misma IP pública.
 - HIBP conserva el límite local de 20 consultas por usuario/hora y 200 globales/hora. Usa `truncateResponse=false` e `includeUnverified=false`. Fallos también consumen una reserva local; no hay reintentos automáticos. Recargar un POST manualmente es una nueva consulta.
 - Los límites, errores HTTP, timeout o respuestas inválidas nunca se convierten en «Sin registros». No se evade un 429 cambiando de IP o de proveedor.
@@ -94,9 +94,3 @@ Las imágenes se sirven localmente para evitar solicitudes del navegador a los p
 - Have I Been Pwned y Malwarebytes: marcas SVG de [Simple Icons](https://github.com/simple-icons/simple-icons), distribuidas bajo CC0; las marcas pertenecen a sus titulares.
 - ANCI: adaptación PNG con transparencia a partir del logo aportado por el usuario; se muestra completo y sin recortes en la tarjeta de Ciberlupa.
 - F-Secure y CronUp: siglas provisionales visibles, no logos oficiales. Se requieren sus archivos oficiales para sustituirlas.
-
-## Correo de la sesión institucional
-
-El callback OIDC obtiene `email` y `email_verified` exclusivamente de los claims del ID token ya validado. Solo acepta un correo sintácticamente válido, de hasta 254 caracteres, con `email_verified` booleano `true`. No usa `preferred_username`, parámetros GET/POST ni el correo almacenado en el usuario de Django como alternativa. Cada inicio de sesión reemplaza el valor anterior, incluso si el nuevo token no trae un correo utilizable.
-
-Después de actualizar, las sesiones existentes deben cerrarse y volver a iniciarse para obtener este dato. Si falta el correo o no está verificado, el usuario puede seguir usando los otros módulos, pero la consulta automática de filtraciones queda bloqueada. El administrador de Keycloak debe revisar los mapeadores `email`/`email_verified` del ID token y verificar la dirección de la cuenta mediante el procedimiento institucional. No se deben marcar direcciones arbitrarias como verificadas para eludir esta comprobación.

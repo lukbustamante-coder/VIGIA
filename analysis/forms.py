@@ -31,31 +31,22 @@ FILE_EXTENSIONS = {
 
 class BreachLookupForm(forms.Form):
     email = forms.EmailField(
-        label="Tu correo institucional",
+        label="Correo que quieres consultar",
         max_length=254,
         widget=forms.EmailInput(
             attrs={"placeholder": "nombre@dominio.cl", "autocomplete": "off", "spellcheck": "false"}
         ),
     )
     consent = forms.BooleanField(
-        label="Autorizo consultar las filtraciones asociadas a mi correo",
+        label="Confirmo que esta cuenta es mía o que tengo autorización para consultarla",
     )
 
-    def __init__(self, *args, account_email="", provider_name="XposedOrNot", **kwargs):
+    def __init__(self, *args, provider_name="XposedOrNot", **kwargs):
         super().__init__(*args, **kwargs)
-        self.account_email = account_email
-        self.fields["email"].initial = account_email
-        self.fields["email"].disabled = True
         self.fields["consent"].help_text = (
             f"La dirección completa se enviará a {provider_name}. VIGIA no pide contraseñas "
             "ni guarda el correo consultado o el resultado en el historial."
         )
-
-    def clean(self):
-        cleaned = super().clean()
-        if "email" in self.data and self.data.get("email") != self.account_email:
-            self.add_error("email", "Solo puedes consultar el correo de tu sesión SSO.")
-        return cleaned
 
 
 class URLAnalysisForm(forms.Form):
