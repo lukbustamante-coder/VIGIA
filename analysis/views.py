@@ -249,14 +249,14 @@ def submit_url(request):
             kind="url",
             target_url=target,
             filename=f"URL · {urlsplit(target).hostname}"[:255],
-            url_scan_consent=bool(form.cleaned_data.get("url_scan_consent")),
+            url_scan_consent=bool(settings.VT_ALLOW_URL_SUBMISSION),
         )
         AuditEvent.objects.create(
-            actor=request.user, action="url_query_authorized", submission_id=item.id
+            actor=request.user, action="url_query_requested", submission_id=item.id
         )
         if item.url_scan_consent:
             AuditEvent.objects.create(
-                actor=request.user, action="url_scan_authorized", submission_id=item.id
+                actor=request.user, action="url_scan_policy_applied", submission_id=item.id
             )
     return redirect("result", pk=item.id)
 

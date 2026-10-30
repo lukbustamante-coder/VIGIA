@@ -8,7 +8,7 @@ Se rechazan esquemas distintos de HTTP/HTTPS, credenciales incrustadas, caracter
 
 Se usa la misma `VT_API_KEY` del módulo de archivos. Sin clave, cuota, un reporte válido o estadísticas de motores, el resultado es **No concluyente**. No se inventa una puntuación de motores.
 
-Cada consulta requiere una casilla de autorización: el identificador base64 de la API comunica la URL completa a VirusTotal y no la anonimiza. La ruta, los parámetros y el fragmento pueden contener datos privados o tokens; no introduzcas enlaces confidenciales.
+El formulario no tiene casillas de autorización: al pulsar «Analizar URL», se consulta automáticamente VirusTotal. El identificador base64 de la API comunica la URL completa a VirusTotal y no la anonimiza. La ruta, los parámetros y el fragmento pueden contener datos privados o tokens; no introduzcas enlaces confidenciales.
 
 Si VirusTotal no conoce la dirección, no se solicita un análisis nuevo por defecto. Para permitirlo, agrega en `.env`:
 
@@ -16,7 +16,7 @@ Si VirusTotal no conoce la dirección, no se solicita un análisis nuevo por def
 VT_ALLOW_URL_SUBMISSION=true
 ```
 
-Después carga de nuevo las variables y reinicia servidor y worker. El formulario mostrará otra casilla desmarcada: **Autorizar que VirusTotal analice la URL si no tiene un reporte**. Solo con política y autorización de esa carga se usa `POST /api/v3/urls`. En ese caso VirusTotal puede visitar la página y compartir resultados según sus condiciones. La autorización no permite envíos de EML, archivos o encabezados a otros servicios.
+Después carga de nuevo las variables y reinicia servidor y worker. Para nuevas consultas, si no hay reporte y `VT_ALLOW_URL_SUBMISSION=true`, se solicita automáticamente el análisis con `POST /api/v3/urls`. VirusTotal puede visitar la página y compartir resultados según sus condiciones. Con la opción en `false` solo se consultan reportes existentes. El servidor guarda esta política en el campo histórico `url_scan_consent`; los parámetros antiguos del formulario se ignoran y no pueden modificarla. Los registros anteriores conservan su configuración. Esta política se aplica al módulo de URL y no activa envíos de archivos o correos.
 
 Si hay un reporte conocido se reutiliza. Si se solicita un análisis, el worker persiste su identificador y consulta su estado cada 30 segundos (60 ante cuota), con el mismo plazo de 30 minutos y máximo de 60 consultas de los archivos. No se vuelve a enviar la URL en cada consulta. Las cuotas de 20 análisis por usuario y hora y 200 pendientes son compartidas entre los tres módulos.
 
@@ -24,7 +24,7 @@ Si hay un reporte conocido se reutiliza. Si se solicita un análisis, el worker 
 
 Los usuarios reciben el veredicto y una explicación del alcance, con el historial de sus consultas identificado por el dominio que introdujeron. Los administradores pueden ver la URL completa como texto escapado, sus indicadores y las estadísticas del proveedor. El resultado público no expone la URL completa ni sus parámetros. Una detección maliciosa o alguna sospechosa produce **Sospechoso**; al menos dos detecciones maliciosas producen **Malicioso**. Un reporte con motores concluidos sin detecciones produce **Sin indicios detectados**, lo que no garantiza seguridad ni vigencia futura.
 
-Las URLs se guardan en la base de datos con los resultados y siguen la retención de 30 días; no crean muestras en el directorio de archivos. No se pasan por argumentos de línea de comandos: el worker usa entrada estándar para evitar exponerlas en listados de procesos. Se auditan autorización e intento de consulta y, cuando corresponda, autorización e intento de análisis. Los intentos no prueban recepción o procesamiento por el proveedor y no son transacciones atómicas con la API.
+Las URLs se guardan en la base de datos con los resultados y siguen la retención de 30 días; no crean muestras en el directorio de archivos. No se pasan por argumentos de línea de comandos: el worker usa entrada estándar para evitar exponerlas en listados de procesos. Se auditan la solicitud de consulta (`url_query_requested`), la aplicación de la política de análisis (`url_scan_policy_applied`, cuando corresponda) y los intentos posteriores. Las auditorías antiguas conservan su significado original. Los intentos no prueban recepción o procesamiento por el proveedor y no son transacciones atómicas con la API.
 
 Las URLs no se envían a OpenAI ni Gemini en este módulo. No se ha realizado una integración de navegación ni de IA con el contenido web. Las pruebas de VirusTotal usan respuestas simuladas; para comprobar la cuenta real usa una URL pública que tengas autorización para compartir.
 

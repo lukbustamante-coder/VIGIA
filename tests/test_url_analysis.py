@@ -186,15 +186,35 @@ def test_timeout_is_not_a_clean_url(monkeypatch):
     assert report["status"] == "timeout" and "secret" not in json.dumps(report)
 
 
-def test_url_query_requires_consent_and_rejects_disabled_scan(settings):
-    assert not URLAnalysisForm({"url": "https://example.org/"}).is_valid()
-    assert not URLAnalysisForm(
-        {"url": "https://example.org/", "vt_url_consent": "on", "url_scan_consent": "on"}
-    ).is_valid()
-    settings.VT_ALLOW_URL_SUBMISSION = True
-    assert URLAnalysisForm(
-        {"url": "https://example.org/", "vt_url_consent": "on", "url_scan_consent": "on"}
-    ).is_valid()
+@pytest.mark.parametrize("enabled", [False, True])
+def test_url_form_has_no_authorization_checkboxes(settings, enabled):
+    settings.VT_ALLOW_URL_SUBMISSION = enabled
+    form = URLAnalysisForm({"url": "https://example.org/"})
+    assert form.is_valid()
+    assert set(form.fields) == {"url"}
+    assert form.url_scan_enabled is enabled
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("legacy_flag", ["", "on"])
+def test_url_submission_uses_server_policy_without_user_checkboxes(
+    client, settings, enabled, legacy_flag
+):
+    settings.VT_ALLOW_URL_SUBMISSION = enabled
+    client.force_login(get_user_model().objects.create_user(username="url-policy-owner"))
+    page = client.get("/analisis/urls/")
+    assert 'type="checkbox"' not in page.content.decode()
+    result = client.post(
+        "/analisis/urls/enviar/",
+        {"url": "https://example.org/", "url_scan_consent": legacy_flag},
+    )
+    assert result.status_code == 302
+    item = Submission.objects.get()
+    assert item.url_scan_consent is enabled
+    assert not item.vt_upload_consent and not item.ai_header_consent
+    assert AuditEvent.objects.filter(action="url_query_requested").exists()
+    assert AuditEvent.objects.filter(action="url_scan_policy_applied").exists() is enabled
 
 
 @pytest.mark.django_db
@@ -222,10 +242,10 @@ def test_actual_url_worker_needs_no_uploaded_file_and_stores_no_target_in_public
     client.force_login(owner)
     response = client.post(
         "/analisis/urls/enviar/",
-        {"url": "https://example.org/?token=private", "vt_url_consent": "on"},
+        {"url": "https://example.org/?token=private"},
     )
     assert response.status_code == 302
-    assert AuditEvent.objects.filter(action="url_query_authorized").exists()
+    assert AuditEvent.objects.filter(action="url_query_requested").exists()
     call_command("scan_worker", once=True)
     item = Submission.objects.get()
     assert item.kind == "url" and item.status == "done" and item.verdict == "inconclusive"
@@ -271,8 +291,6 @@ def test_url_worker_uses_stdin_and_persisted_polling(client, settings):
             "/analisis/urls/enviar/",
             {
                 "url": "https://example.org/?token=private",
-                "vt_url_consent": "on",
-                "url_scan_consent": "on",
             },
         ).status_code
         == 302
