@@ -1,4 +1,35 @@
-{% extends 'analysis/base.html' %}{% block content %}
-<section class="hero"><p class="eyebrow">VISIBILIDAD ANTE LAS AMENAZAS</p><h1>Antes de abrirlo,<br>analízalo.</h1><p class="intro">Revisa correos y archivos sospechosos en un solo lugar. Recibe un veredicto claro y deja la investigación a tu equipo de seguridad.</p><a class="button" href="{% url 'login' %}">Ingresar con SSO →</a></section>
-<section class="grid"><article class="card"><span class="icon">✉</span><h2>Correos electrónicos</h2><p>Inspección de mensajes, enlaces y adjuntos. Solo archivos EML.</p><span class="tag">.EML</span></article><article class="card"><span class="icon">▤</span><h2>Archivos y documentos</h2><p>Análisis estático de documentos, comprimidos, texto e imágenes comunes.</p><span class="tag">PDF · ZIP · OFFICE · MÁS</span></article></section>
+{% extends 'analysis/base.html' %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">VISIBILIDAD ANTE LAS AMENAZAS</p>
+  <h1>Antes de abrirlo,<br>analízalo.</h1>
+  <p class="intro">Analiza correos, archivos y URL sospechosas, y consulta si tu cuenta aparece en filtraciones de datos. Encuentra recomendaciones para saber cómo actuar en cada caso.</p>
+  <a class="button" href="{% url 'login' %}">Ingresar con SSO →</a>
+</section>
+<section class="grid" aria-label="Servicios de VIGIA">
+  <article class="card">
+    <span class="icon" aria-hidden="true">✉</span>
+    <h2>Correos electrónicos</h2>
+    <p>Revisa el remitente, los registros de entrega, los enlaces y los adjuntos de un correo sospechoso.</p>
+    <span class="tag">.EML</span>
+  </article>
+  <article class="card">
+    <span class="icon" aria-hidden="true">▤</span>
+    <h2>Archivos y documentos</h2>
+    <p>Busca señales de amenaza en documentos, comprimidos, texto e imágenes antes de abrirlos.</p>
+    <span class="tag">PDF · ZIP · OFFICE · MÁS</span>
+  </article>
+  <article class="card">
+    <span class="icon" aria-hidden="true">www</span>
+    <h2>Análisis de URL</h2>
+    <p>Consulta los reportes de VirusTotal sobre un enlace y la categoría del sitio, cuando esté disponible, sin abrir la página desde VIGIA.</p>
+    <span class="tag">ENLACES WEB</span>
+  </article>
+  <article class="card">
+    <span class="icon" aria-hidden="true">◎</span>
+    <h2>Filtraciones de cuentas</h2>
+    <p>Consulta si tu correo aparece en filtraciones registradas por XposedOrNot y accede a otras fuentes para completar tu revisión.</p>
+    <span class="tag">EXPOSICIÓN DE DATOS</span>
+  </article>
+</section>
 {% endblock %}
