@@ -38,9 +38,10 @@ def test_initial_state_never_claims_a_completed_check_and_hibp_stays_separate():
     initial = source_checks("xposedornot")
     assert initial["completed"] == 0 and not initial["has_result"]
     assert initial["rows"][0]["state"] == "not_checked"
+    assert initial["rows"][1]["id"] == "ciberlupa"
     paid = source_checks("hibp", {"status": "no_records"})
     assert paid["rows"][0]["state"] == "manual"
-    assert paid["rows"][1]["state"] == "no_records"
+    assert next(row for row in paid["rows"] if row["id"] == "hibp")["state"] == "no_records"
     assert paid["completed"] == 1
 
 

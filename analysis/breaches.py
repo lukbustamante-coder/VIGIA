@@ -21,6 +21,13 @@ SOURCES = (
         "mode": "Consulta web y API básica gratuitas",
     },
     {
+        "id": "ciberlupa",
+        "name": "Ciberlupa · Agencia Nacional de Ciberseguridad (ANCI, CHILE)",
+        "url": "https://ciberlupa.anci.gob.cl/verificar/?type=rut",
+        "description": "Verificación externa por RUT en Ciberlupa de ANCI. Esta revisión es independiente de la consulta de correo de VIGIA.",
+        "mode": "Verificación por RUT en el sitio de ANCI",
+    },
+    {
         "id": "hibp",
         "name": "Have I Been Pwned",
         "url": "https://haveibeenpwned.com/",
@@ -54,13 +61,6 @@ SOURCES = (
         "url": "https://leaks.cronup.com/",
         "description": "Fuente externa para revisar filtraciones. Consulta en su sitio el alcance del servicio y sus condiciones antes de introducir datos.",
         "mode": "Consulta en el sitio del proveedor",
-    },
-    {
-        "id": "ciberlupa",
-        "name": "Ciberlupa · Agencia Nacional de Ciberseguridad (ANCI, CHILE)",
-        "url": "https://ciberlupa.anci.gob.cl/verificar/?type=rut",
-        "description": "Verificación externa por RUT en Ciberlupa de ANCI. Esta revisión es independiente de la consulta de correo de VIGIA.",
-        "mode": "Verificación por RUT en el sitio de ANCI",
     },
 )
 
