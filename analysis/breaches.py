@@ -48,6 +48,13 @@ SOURCES = (
         "description": "Herramienta para revisar exposición de datos personales vinculados a un correo. Revisa sus condiciones antes de introducir datos.",
         "mode": "Consulta en el sitio del proveedor",
     },
+    {
+        "id": "cronup",
+        "name": "CronUp Leaks",
+        "url": "https://leaks.cronup.com/",
+        "description": "Fuente externa para revisar filtraciones. Consulta en su sitio el alcance del servicio y sus condiciones antes de introducir datos.",
+        "mode": "Consulta en el sitio del proveedor",
+    },
 )
 
 CHECK_STATES = {

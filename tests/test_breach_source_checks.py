@@ -23,10 +23,12 @@ from analysis.breaches import source_checks
 def test_only_selected_source_has_an_automatic_outcome(status, completed, tone):
     report = source_checks("xposedornot", {"status": status, "breaches": []})
     rows = {row["id"]: row for row in report["rows"]}
-    assert report["completed"] == completed and report["total"] == 5
+    assert report["completed"] == completed and report["total"] == 6
     assert rows["xposedornot"]["tone"] == tone
     assert rows["hibp"]["state"] == rows["hpi"]["state"] == rows["fsecure"]["state"] == "manual"
     assert rows["malwarebytes"]["state"] == "external_verification"
+    assert rows["cronup"]["state"] == "manual"
+    assert rows["cronup"]["count"] is None
     assert all(row["tone"] != "success" for key, row in rows.items() if key != "xposedornot")
 
 
@@ -41,7 +43,7 @@ def test_initial_state_never_claims_a_completed_check_and_hibp_stays_separate():
 
 
 @pytest.mark.django_db
-def test_lookup_renders_five_source_rows_without_inventing_external_results(client, settings):
+def test_lookup_renders_six_source_rows_without_inventing_external_results(client, settings):
     settings.DEBUG = True
     settings.SECURE_SSL_REDIRECT = False
     settings.BREACH_PROVIDER = "xposedornot"
@@ -68,10 +70,13 @@ def test_lookup_renders_five_source_rows_without_inventing_external_results(clie
     lookup.assert_called_once_with("private@example.org")
     paid.assert_not_called()
     html = response.content.decode()
-    assert html.count('class="breach-source-row"') == 5
+    assert html.count('class="breach-source-row"') == 6
     assert 'data-source="xposedornot" data-check-state="found"' in html
     assert 'data-source="malwarebytes" data-check-state="external_verification"' in html
-    assert "1 de 5 con resultado automático" in html
+    assert 'data-source="cronup" data-check-state="manual"' in html
+    assert 'href="https://leaks.cronup.com/"' in html
+    assert "leaks.cronup.com/?" not in html
+    assert "1 de 6 con resultado automático" in html
     assert "VIGIA no ha solicitado ni validado un código" in html
     assert "123456" not in html
     assert 'name="code"' not in html
@@ -96,4 +101,4 @@ def test_get_shows_sources_without_sending_queries_or_triggering_verification(cl
     post.assert_not_called()
     report = response.context["source_checks"]
     assert report["completed"] == 0 and not report["has_result"]
-    assert len(report["rows"]) == 5
+    assert len(report["rows"]) == 6

@@ -11,6 +11,9 @@ La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin s
 | [HPI Identity Leak Checker](https://sec.hpi.de/ilc/) | Comprobación pública de exposición de un correo | Solo enlace manual. |
 | [F-Secure Identity Theft Checker](https://www.f-secure.com/en/identity-theft-checker) | Comprobador público de exposición | Solo enlace manual; revisar condiciones actuales. |
 | [Malwarebytes Digital Footprint](https://www.malwarebytes.com/digital-footprint) | Herramienta pública de revisión de exposición | Solo enlace manual; revisar condiciones actuales. |
+| [CronUp Leaks](https://leaks.cronup.com/) | Fuente externa aportada por el usuario; consultar alcance y condiciones en su sitio | Solo enlace manual; API y cobertura no verificadas. |
+
+CronUp Leaks se agregó como **Revisión manual**. El proxy del entorno bloqueó el acceso a su sitio, por lo que no se confirmó disponibilidad, cobertura, gratuidad ni una API oficial. Su enlace no incluye el correo consultado y no cuenta como resultado automático.
 
 Have I Been Ransom fue aportado como referencia, pero no se ha confirmado su API ni su cobertura. Las bases de organizaciones afectadas por ransomware y las bases de cuentas personales filtradas tienen alcances diferentes.
 
@@ -73,7 +76,7 @@ La tabla muestra una fila por fuente, con texto, símbolo y color. Solo el prove
 - Gris: revisión manual o resultado no disponible; nunca equivale a ausencia de filtraciones.
 - Azul: la fuente automática está habilitada, pero todavía no se ha enviado la consulta.
 
-El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 5 con resultado automático**; las otras cuatro no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su fila.
+El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 6 con resultado automático**; las otras cinco no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su fila.
 
 El usuario confirmó que solo tiene acceso al formulario web de Malwarebytes. Por tanto, su fila indica **Verificación en Malwarebytes** y ofrece un enlace a su sitio y una guía: introducir allí el mismo correo, recibir el código y validarlo allí. Abrir el enlace no envía el correo, solicita códigos ni cambia la fila a «Sin registros».
 
