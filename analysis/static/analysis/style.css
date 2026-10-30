@@ -1512,6 +1512,12 @@ footer {
 .breach-source-link {
   font-size: 14px;
 }
+.incident-report input[type=email], .incident-report input[type=file] {
+  width: 100%;
+  max-width: 100%;
+}
+.incident-report { overflow-wrap: anywhere; }
+.incident-report button:disabled { opacity: .65; cursor: not-allowed; }
 @media (max-width:700px) {
   .breach-checks-list { grid-template-columns: minmax(0, 1fr); }
   .breach-source-row { padding: 18px; }

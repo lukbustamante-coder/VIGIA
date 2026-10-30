@@ -7,6 +7,8 @@ from authlib.integrations.base_client.errors import MismatchingStateError
 from authlib.integrations.django_client import OAuth
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import DatabaseError
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
@@ -160,6 +162,15 @@ def callback(request):
         login(request, user)
         request.session["roles"] = roles
         request.session["oidc_display_name"] = display_name
+        # Contact information only: never used to grant roles or restrict breach queries.
+        contact_email = claims.get("email", "")
+        try:
+            if not isinstance(contact_email, str) or len(contact_email) > 254:
+                raise ValidationError("Invalid email claim")
+            validate_email(contact_email)
+        except ValidationError:
+            contact_email = ""
+        request.session["oidc_contact_email"] = contact_email
         request.session.set_expiry(min(1800, remaining))
         request.session.pop("force_reauthentication", None)
         request.session.pop("oidc_logout_state", None)

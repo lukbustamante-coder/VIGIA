@@ -31,6 +31,9 @@ class Submission(models.Model):
 
     @property
     def status_label(self):
+        report = getattr(self, "incident_report", None) if not self._state.adding else None
+        if report:
+            return report.status_label
         return STATUS_LABELS.get(self.status, "Estado desconocido")
 
     @property
@@ -52,3 +55,26 @@ class AuditEvent(models.Model):
     action = models.CharField(max_length=40)
     submission_id = models.UUIDField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class IncidentReport(models.Model):
+    submission = models.OneToOneField(
+        Submission, on_delete=models.CASCADE, related_name="incident_report"
+    )
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    email = models.EmailField()
+    status = models.CharField(max_length=12, default="queued")
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True)
+    sent_at = models.DateTimeField(null=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    @property
+    def status_label(self):
+        return {
+            "queued": "Reporte en cola",
+            "sending": "Enviando reporte",
+            "sent": "Reportado",
+            "failed": "Reporte no enviado",
+            "uncertain": "Envío por confirmar",
+        }.get(self.status, "Reporte pendiente")

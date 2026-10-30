@@ -19,6 +19,15 @@ class Command(BaseCommand):
         ).delete()
         AuditEvent.objects.filter(created_at__lt=now - timedelta(days=90)).delete()
         if settings.PRIVATE_STORAGE.exists():
+            retained = settings.PRIVATE_STORAGE / "report-samples"
+            if retained.exists():
+                for path in retained.iterdir():
+                    try:
+                        identifier = UUID(path.name)
+                    except ValueError:
+                        continue
+                    if path.is_file() and not Submission.objects.filter(pk=identifier).exists():
+                        path.unlink(missing_ok=True)
             for path in settings.PRIVATE_STORAGE.iterdir():
                 if path.is_dir() and path.name.endswith(".resources"):
                     try:

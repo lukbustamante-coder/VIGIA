@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from analysis.email_resources import cleanup, resource_directory, waiting
 from analysis.models import AuditEvent, Submission
+from analysis.reporting import process_next_report, sample_path
 
 
 def limits():
@@ -83,6 +84,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         while True:
+            process_next_report()
             stale = Submission.objects.filter(
                 status__in=["running", "polling_vt"],
                 started_at__lt=timezone.now() - timedelta(minutes=5),
@@ -293,3 +295,6 @@ class Command(BaseCommand):
         finally:
             if not polling and item.kind != "url":
                 path.unlink(missing_ok=True)
+            item.refresh_from_db(fields=["status", "verdict"])
+            if item.status == "done" and item.verdict == "no_indicators":
+                sample_path(item).unlink(missing_ok=True)

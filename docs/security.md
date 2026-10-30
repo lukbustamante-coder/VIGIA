@@ -6,7 +6,7 @@ El navegador, archivos, nombres, metadatos EML, ZIP/XML y respuestas de IA son d
 
 Se guardan en la base de datos identificador de usuario pseudónimo ligado al issuer/sub, nombre del archivo, estado, veredicto, IOC, hallazgos y auditoría. Los IOC y los nombres pueden contener datos personales: acceso restringido, retención, cifrado y políticas internas siguen siendo necesarios. Las consultas a terceros son opcionales.
 
-Cuando se habilitan muestras, se conservan autorización, identificador de análisis y estado de espera en la base de datos; no se devuelven detalles del proveedor a usuarios comunes. Solo se envía el original autorizado, no se recorren adjuntos para compartirlos por separado. El identificador remoto se valida antes de usarlo en un endpoint fijo. Los redirects de API se rechazan y se conserva la verificación TLS. La muestra local se elimina tras la fase de inspección/envío; los pasos de polling no contienen ni reenvían el archivo. Un timeout de subida puede ocurrir después de que el tercero reciba contenido: la UI y auditoría no deben interpretarse como prueba de ausencia de transferencia. Las cuotas y la latencia no se resuelven cambiando la clasificación.
+Cuando se habilitan muestras, se conservan autorización, identificador de análisis y estado de espera en la base de datos; no se devuelven detalles del proveedor a usuarios comunes. Solo se envía el original autorizado, no se recorren adjuntos para compartirlos por separado. El identificador remoto se valida antes de usarlo en un endpoint fijo. Los redirects de API se rechazan y se conserva la verificación TLS. La copia de trabajo se elimina tras la fase de inspección/envío; una copia privada independiente se conserva para reportes a soporte hasta finalizar sin indicios o expirar la retención (ver [reportes](support-reports.md)); los pasos de polling no contienen ni reenvían el archivo. Un timeout de subida puede ocurrir después de que el tercero reciba contenido: la UI y auditoría no deben interpretarse como prueba de ausencia de transferencia. Las cuotas y la latencia no se resuelven cambiando la clasificación.
 
 ## Relación con OWASP Top 10
 
@@ -29,7 +29,7 @@ Esta es una guía de diseño, no una certificación de cumplimiento. Se utilizan
 
 Límite durante streaming, un archivo por petición, 20 análisis por usuario por hora y 200 pendientes globales. La serialización de cuotas por usuario usa locks en PostgreSQL. SQLite no ofrece la misma concurrencia y debe mantenerse para desarrollo. Las cuotas de la aplicación no reemplazan protección de volumen, rate limits del proxy y límites de disco.
 
-No hay un veredicto de «seguro». La reputación externa puede ser obsoleta o equivocada; el umbral de dos motores es una regla inicial documentada, no una garantía de detección. PDF/imágenes y contenedores cifrados o truncados no se declaran limpios por un fallo de parseo. Los originales se borran después del procesamiento; limpieza de huérfanos requiere ejecutar el comando de mantenimiento.
+No hay un veredicto de «seguro». La reputación externa puede ser obsoleta o equivocada; el umbral de dos motores es una regla inicial documentada, no una garantía de detección. PDF/imágenes y contenedores cifrados o truncados no se declaran limpios por un fallo de parseo. La copia de trabajo se borra después del procesamiento; la copia privada para reportes sigue la retención descrita en [reportes](support-reports.md). La limpieza de huérfanos requiere ejecutar el comando de mantenimiento.
 
 ## IA
 
@@ -44,3 +44,7 @@ OpenAI y Gemini se llaman en endpoints HTTPS fijos, sin redirecciones; las clave
 ## Pendientes antes de producción
 
 Integración con SSO/API reales, hardening y aislamiento del sistema operativo, SAST/SCA/DAST y revisión independiente, pruebas de carga, monitoreo, restauración, retención programada y revisión de privacidad. Para detección profunda se recomienda añadir motores antivirus/sandbox administrados con sus propios límites de seguridad. La versión actual no implementa detonación, CDR ni un motor antivirus general.
+
+## Reportes institucionales
+
+Los envíos de soporte se producen solo por POST con CSRF del propietario y se dirigen a dos casillas fijadas en el servidor. SMTP es un destino de red adicional configurado por el operador. No se aceptan destinatarios del navegador ni se suplanta al usuario como remitente. Los originales y evidencia se adjuntan únicamente al reporte solicitado. Las copias privadas y los datos de contacto de reportes siguen la retención de resultados; los buzones de soporte tienen su propia retención. Ver [configuración y alcance](support-reports.md).

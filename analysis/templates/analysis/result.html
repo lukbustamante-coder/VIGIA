@@ -2,7 +2,7 @@
 {% load static tz %}
 
 {% block extra_head %}
-{% if summary.pending %}<script src="{% static 'analysis/result.js' %}" defer></script>{% endif %}
+{% if summary.pending or reporting.pending %}<script src="{% static 'analysis/result.js' %}?v=reports-1" defer></script>{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -40,6 +40,26 @@
         </div>
     </section>
 </div>
+
+{% if reporting.eligible %}
+<section class="card incident-report" aria-labelledby="incident-report-heading"{% if reporting.pending %} data-report-status="{{ reporting.record.status }}" data-poll-url="{% url 'result' result.id %}?format=json"{% endif %}>
+    <h2 id="incident-report-heading">{% if reporting.record.status == 'sent' %}Reportado{% else %}Reportar al equipo de soporte{% endif %}</h2>
+    {% if report_error %}<p class="errorlist" role="alert">{{ report_error }}</p>{% endif %}
+    {% if reporting.record.status == 'sent' %}
+    <p role="status"><strong>Tu reporte fue enviado.</strong> El equipo revisará el caso y te contactará para orientarte sobre los próximos pasos o informarte el resultado de su revisión.</p>
+    {% elif reporting.pending %}
+    <p role="status"><strong>Estamos enviando tu reporte.</strong> Puedes volver a esta página para conocer su estado. No necesitas enviarlo otra vez.</p><a href="">Actualizar estado</a>
+    {% elif reporting.record.status == 'uncertain' %}
+    <p role="status">No pudimos confirmar el envío completo del reporte. Para evitar duplicados no lo volveremos a enviar automáticamente. Contacta a <a href="mailto:soporte.sisei@utem.cl">soporte.sisei@utem.cl</a> e indica el identificador {{ result.id }}.</p>
+    {% else %}
+    {% if reporting.record.status == 'failed' %}<p class="errorlist" role="alert">No se pudo enviar el reporte. Puedes volver a intentarlo.</p>{% endif %}
+    <p>Comparte este resultado con soporte SISEI e infraestructura para que revisen el caso. Se enviarán tus datos de contacto, la evidencia técnica y {% if module == 'url' %}la URL completa.{% else %}el archivo original{% if module == 'eml' %} EML, incluidos los adjuntos que contiene{% endif %}.{% endif %}</p>
+    {% if reporting.ready %}
+    <form method="post" action="{% url 'report_submission' result.id %}" enctype="multipart/form-data">{% csrf_token %}{{ reporting.form.as_p }}<button>{% if reporting.record %}Reintentar reporte{% else %}Reportar{% endif %}</button></form>
+    {% else %}<p>El envío de reportes aún no está disponible. Puedes contactar a <a href="mailto:soporte.sisei@utem.cl">soporte.sisei@utem.cl</a>.</p><button disabled>Reportar</button>{% endif %}
+    {% endif %}
+</section>
+{% endif %}
 
 {% if module == 'url' %}
 <section class="card url-category-card" aria-labelledby="url-category-heading"><h2 id="url-category-heading">Categoría del sitio</h2>

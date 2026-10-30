@@ -16,5 +16,6 @@ urlpatterns = [
     path("auth/logout/callback/", auth.logout_callback, name="logout_callback"),
     path("upload/", views.upload, name="upload"),
     path("results/<uuid:pk>/", views.result, name="result"),
+    path("results/<uuid:pk>/reportar/", views.report_submission, name="report_submission"),
     path("health/", views.health, name="health"),
 ]

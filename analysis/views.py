@@ -1,4 +1,5 @@
 import os
+import shutil
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -25,6 +26,7 @@ from .forms import FILE_EXTENSIONS, BreachLookupForm, UploadForm, URLAnalysisFor
 from .labels import VERDICT_LABELS
 from .models import AuditEvent, Submission
 from .presentation import email_explanation, result_summary, url_categorization
+from .reporting import ReportForm, eligible, mail_ready, queue_report, report_context, sample_path
 
 
 @require_safe
@@ -122,9 +124,9 @@ def dashboard(request, module="eml"):
     if not request.user.is_authenticated:
         return render(request, "analysis/welcome.html")
     submissions = (
-        Submission.objects.all()
+        Submission.objects.select_related("incident_report").all()
         if is_admin(request)
-        else Submission.objects.filter(owner=request.user)
+        else Submission.objects.select_related("incident_report").filter(owner=request.user)
     )
     if module == "url":
         return render(
@@ -195,6 +197,12 @@ def upload(request):
                     if total > settings.MAX_UPLOAD_BYTES:
                         raise ValueError("Carga demasiado grande")
                     target.write(chunk)
+            retained = sample_path(item)
+            retained.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            os.chmod(retained.parent, 0o700)
+            with path.open("rb") as source, retained.open("xb") as destination:
+                os.chmod(retained, 0o600)
+                shutil.copyfileobj(source, destination)
             AuditEvent.objects.create(actor=request.user, action="upload", submission_id=item.id)
             if item.vt_upload_consent:
                 AuditEvent.objects.create(
@@ -216,6 +224,7 @@ def upload(request):
     except Exception:
         if path:
             path.unlink(missing_ok=True)
+            sample_path(item).unlink(missing_ok=True)
         return JsonResponse({"error": "No se pudo guardar el archivo."}, status=503)
 
 
@@ -264,6 +273,10 @@ def submit_url(request):
 @login_required
 @require_GET
 def result(request, pk):
+    return _result_response(request, pk)
+
+
+def _result_response(request, pk, report_form=None, report_error="", response_status=200):
     item = get_object_or_404(Submission, pk=pk)
     admin = is_admin(request)
     if not admin and item.owner_id != request.user.pk:
@@ -275,6 +288,9 @@ def result(request, pk):
         "verdict": item.verdict,
         "label": VERDICT_LABELS.get(item.verdict, "No concluyente"),
     }
+    incident = getattr(item, "incident_report", None)
+    if incident:
+        payload["report"] = {"status": incident.status}
     explanation = email_explanation(item)
     categorization = url_categorization(item)
     if categorization is not None:
@@ -285,7 +301,7 @@ def result(request, pk):
         payload["details"] = item.details
         AuditEvent.objects.create(actor=request.user, action="view_ioc", submission_id=item.id)
     if request.GET.get("format") == "json":
-        return JsonResponse(payload)
+        return JsonResponse(payload, status=response_status)
     return render(
         request,
         "analysis/result.html",
@@ -296,8 +312,64 @@ def result(request, pk):
             "module": item.kind,
             "email_analysis": explanation,
             "url_category": categorization,
+            "reporting": report_context(
+                item, request.session.get("oidc_contact_email", ""), report_form
+            )
+            if item.owner_id == request.user.pk
+            else None,
+            "report_error": report_error,
         },
+        status=response_status,
     )
+
+
+@login_required
+@require_POST
+def report_submission(request, pk):
+    item = get_object_or_404(Submission, pk=pk, owner=request.user)
+    if not eligible(item):
+        return _result_response(
+            request,
+            pk,
+            report_error="Este resultado todavía no está disponible para reportar.",
+            response_status=400,
+        )
+    existing = getattr(item, "incident_report", None)
+    if existing and existing.status != "failed":
+        return redirect("result", pk=pk)
+    if existing and existing.attempts >= 3:
+        return _result_response(
+            request,
+            pk,
+            report_error="No pudimos enviar el reporte después de varios intentos. Contacta directamente a soporte.sisei@utem.cl.",
+            response_status=429,
+        )
+    if not mail_ready():
+        return _result_response(
+            request,
+            pk,
+            report_error="El envío de reportes aún no está disponible. Puedes contactar directamente a soporte.sisei@utem.cl.",
+            response_status=503,
+        )
+    form = ReportForm(
+        request.POST,
+        request.FILES,
+        item=item,
+        contact_email=request.session.get("oidc_contact_email", ""),
+    )
+    if not form.is_valid():
+        return _result_response(request, pk, report_form=form, response_status=400)
+    try:
+        queue_report(item, request.user, form)
+    except (OSError, ValueError):
+        return _result_response(
+            request,
+            pk,
+            report_form=form,
+            report_error="No pudimos preparar el archivo para el reporte. Vuelve a intentarlo.",
+            response_status=503,
+        )
+    return redirect("result", pk=pk)
 
 
 @require_GET

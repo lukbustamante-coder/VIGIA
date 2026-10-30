@@ -65,7 +65,8 @@ def test_result_displays_one_bold_guidance_and_only_authorized_support_address(c
     assert "contacta a tu equipo de seguridad" not in html
     if kind == "file":
         assert "Reporta el archivo al equipo de Ciberseguridad de UTEM" in html
-        assert 'href="mailto:' not in html
+        guidance_html = html.split('id="guidance-heading"', 1)[1].split("</section>", 1)[0]
+        assert 'href="mailto:' not in guidance_html
     else:
         assert f'href="mailto:{SUPPORT_EMAIL}"' in html
         assert "mailto:soporte.sisei@utem.cl?" not in html

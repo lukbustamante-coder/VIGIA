@@ -97,6 +97,17 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 1
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5
 PRIVATE_STORAGE = Path(os.getenv("VIGIA_STORAGE", str(BASE_DIR / "var" / "uploads")))
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+# SMTP is enabled explicitly after the institution configures its relay and sender.
+REPORT_MAIL_ENABLED = os.getenv("REPORT_MAIL_ENABLED", "false").lower() == "true"
+EMAIL_BACKEND = "analysis.mail_backend.EmailBackend"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_TIMEOUT = 30
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "")
 OIDC_ISSUER = os.getenv("OIDC_ISSUER", "").rstrip("/")
 OIDC_CLIENT_ID = os.getenv("OIDC_CLIENT_ID", "vigia")
 OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET", "")

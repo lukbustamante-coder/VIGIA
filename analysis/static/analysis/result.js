@@ -2,8 +2,9 @@
 
 (() => {
     const report = document.querySelector("[data-analysis-status]");
-    if (!report) return;
-    const endpoint = new URL(report.dataset.pollUrl, window.location.origin);
+    const incident = document.querySelector("[data-report-status]");
+    if (!report && !incident) return;
+    const endpoint = new URL((report || incident).dataset.pollUrl, window.location.origin);
     if (endpoint.origin !== window.location.origin) return;
 
     async function poll() {
@@ -21,8 +22,9 @@
             if (response.status === 401 || response.status === 403 || response.status === 404) return;
             if (response.ok) {
                 const result = await response.json();
-                if (["queued", "running", "waiting_vt", "polling_vt", "done", "failed"].includes(result.status) &&
-                    result.status !== report.dataset.analysisStatus) {
+                if ((report && ["queued", "running", "waiting_vt", "polling_vt", "done", "failed"].includes(result.status) &&
+                    result.status !== report.dataset.analysisStatus) ||
+                    (incident && result.report && result.report.status !== incident.dataset.reportStatus)) {
                     window.location.reload();
                     return;
                 }
