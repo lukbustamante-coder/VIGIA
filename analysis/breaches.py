@@ -121,6 +121,7 @@ SOURCE_GUIDES = {
         "note": "Su cobertura y API no se han verificado. VIGIA no recibe un resultado automático de esta fuente.",
     },
     "ciberlupa": {
+        "logo": "analysis/providers/anci.png",
         "initials": "ANCI",
         "steps": [
             "Abre Ciberlupa desde el enlace de esta tarjeta: está seleccionada la verificación por RUT.",

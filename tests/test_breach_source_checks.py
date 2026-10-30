@@ -85,6 +85,7 @@ def test_lookup_renders_seven_source_rows_without_inventing_external_results(cli
     assert "providers/hibp.svg" in html
     assert "providers/malwarebytes.svg" in html
     assert "providers/xposedornot.ico" in html
+    assert "providers/anci.png" in html
     assert "1 de 7 con resultado automático" in html
     assert "VIGIA no ha solicitado ni validado un código" in html
     assert "123456" not in html

@@ -93,4 +93,5 @@ Las imágenes se sirven localmente para evitar solicitudes del navegador a los p
 
 - XposedOrNot: favicon del [repositorio oficial](https://raw.githubusercontent.com/XposedOrNot/XposedOrNot-Website/master/favicon.ico).
 - Have I Been Pwned y Malwarebytes: marcas SVG de [Simple Icons](https://github.com/simple-icons/simple-icons), distribuidas bajo CC0; las marcas pertenecen a sus titulares.
-- HPI, F-Secure, CronUp y Ciberlupa: siglas provisionales visibles, no logos oficiales. Se requieren sus archivos oficiales para sustituirlas. No se inventaron marcas.
+- ANCI: adaptación PNG con transparencia a partir del logo aportado por el usuario; se muestra completo y sin recortes en la tarjeta de Ciberlupa.
+- HPI, F-Secure y CronUp: siglas provisionales visibles, no logos oficiales. Se requieren sus archivos oficiales para sustituirlas.
