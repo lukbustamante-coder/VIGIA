@@ -1430,36 +1430,63 @@ footer {
   flex-wrap: wrap;
   gap: 12px;
 }
-.breach-checks-head, .breach-source-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, .8fr);
-  gap: 20px;
-  padding: 18px 12px;
-}
-.breach-checks-head {
-  background: var(--surface-blue);
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-  font-weight: 650;
-}
 .breach-checks-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
   padding: 0;
-  margin: 0;
+  margin: 24px 0 0;
   list-style: none;
 }
 .breach-source-row {
-  border-bottom: 1px solid var(--line);
-  align-items: start;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
   overflow-wrap: anywhere;
 }
-.breach-source-row h3 {
+.breach-source-guide summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  cursor: pointer;
   color: var(--text);
-  margin: 0;
-  font-size: 15px;
+  font-weight: 700;
+  list-style: none;
 }
-.breach-source-row p {
-  margin: 8px 0 0;
+.breach-source-guide summary::-webkit-details-marker { display: none; }
+.breach-source-guide summary::after { content: '+'; margin-left: auto; color: var(--accent); font-size: 24px; }
+.breach-source-guide[open] summary::after { content: '−'; }
+.breach-source-guide summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.breach-provider-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--institution-blue);
+  font-size: 16px;
 }
+.breach-provider-mark img { width: 48px; height: 48px; object-fit: contain; }
+.breach-provider-name { min-width: 0; }
+.breach-provider-hint { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; color: var(--institution-blue); }
+.breach-guide-content { padding-top: 8px; }
+.breach-guide-content ol { padding-left: 22px; }
+.breach-guide-content li { margin-bottom: 10px; }
+.breach-card-outcome {
+  padding: 16px 0;
+  margin: 16px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.breach-source-row p { margin: 8px 0 0; }
 .breach-source-status {
   display: inline-flex;
   align-items: center;
@@ -1475,26 +1502,8 @@ footer {
 .breach-source-link {
   font-size: 14px;
 }
-.breach-verification {
-  margin-top: 22px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-soft);
-}
-.breach-verification summary {
-  cursor: pointer;
-  color: var(--institution-blue);
-  font-weight: 650;
-}
-.breach-verification li {
-  margin-bottom: 10px;
-}
 @media (max-width:700px) {
-  .breach-checks-head { display: none; }
-  .breach-source-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding: 20px 0;
-  }
+  .breach-checks-list { grid-template-columns: minmax(0, 1fr); }
+  .breach-source-row { padding: 18px; }
+  .breach-source-link { white-space: normal; }
 }

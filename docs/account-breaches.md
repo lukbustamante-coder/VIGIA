@@ -11,6 +11,7 @@ La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin s
 | [HPI Identity Leak Checker](https://sec.hpi.de/ilc/) | Comprobación pública de exposición de un correo | Solo enlace manual. |
 | [F-Secure Identity Theft Checker](https://www.f-secure.com/en/identity-theft-checker) | Comprobador público de exposición | Solo enlace manual; revisar condiciones actuales. |
 | [Malwarebytes Digital Footprint](https://www.malwarebytes.com/digital-footprint) | Herramienta pública de revisión de exposición | Solo enlace manual; revisar condiciones actuales. |
+| [Ciberlupa · ANCI](https://ciberlupa.anci.gob.cl/verificar/?type=rut) | Verificación externa por RUT | Solo enlace manual; no se solicita ni transmite el RUT desde VIGIA. |
 | [CronUp Leaks](https://leaks.cronup.com/) | Fuente externa aportada por el usuario; consultar alcance y condiciones en su sitio | Solo enlace manual; API y cobertura no verificadas. |
 
 CronUp Leaks se agregó como **Revisión manual**. El proxy del entorno bloqueó el acceso a su sitio, por lo que no se confirmó disponibilidad, cobertura, gratuidad ni una API oficial. Su enlace no incluye el correo consultado y no cuenta como resultado automático.
@@ -68,16 +69,28 @@ Actualiza el repositorio, ejecuta `bash scripts/setup.sh`, carga `.env` y reinic
 
 ## Chequeo por fuente y Malwarebytes
 
-La tabla muestra una fila por fuente, con texto, símbolo y color. Solo el proveedor API seleccionado recibe el correo después de autorizar la consulta. No se realizan nuevas consultas a otros proveedores por mostrar la tabla.
+La sección muestra una tarjeta por fuente, con texto, símbolo y color. Solo el proveedor API seleccionado recibe el correo después de autorizar la consulta. No se realizan nuevas consultas a otros proveedores por mostrar las tarjetas.
 
 - Rojo: la fuente consultada devolvió registros de exposición.
 - Verde: esa fuente devolvió un resultado sin registros, con la advertencia de cobertura limitada.
-- Ámbar: límite de consultas, falta de respuesta o verificación externa requerida, según el texto de la fila.
+- Ámbar: límite de consultas, falta de respuesta o verificación externa requerida, según el texto de la tarjeta.
 - Gris: revisión manual o resultado no disponible; nunca equivale a ausencia de filtraciones.
 - Azul: la fuente automática está habilitada, pero todavía no se ha enviado la consulta.
 
-El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 6 con resultado automático**; las otras cinco no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su fila.
+El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 7 con resultado automático**; las otras seis no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su tarjeta.
 
-El usuario confirmó que solo tiene acceso al formulario web de Malwarebytes. Por tanto, su fila indica **Verificación en Malwarebytes** y ofrece un enlace a su sitio y una guía: introducir allí el mismo correo, recibir el código y validarlo allí. Abrir el enlace no envía el correo, solicita códigos ni cambia la fila a «Sin registros».
+El usuario confirmó que solo tiene acceso al formulario web de Malwarebytes. Por tanto, su tarjeta indica **Verificación en Malwarebytes** y ofrece un enlace a su sitio y una guía: introducir allí el mismo correo, recibir el código y validarlo allí. Abrir el enlace no envía el correo, solicita códigos ni cambia la fila a «Sin registros».
 
 No hay campos para ingresar el código en VIGIA ni una verificación simulada. El resultado externo no vuelve a la aplicación ni se almacena como comprobado. Vincular automáticamente solicitud, código y resultado al mismo correo queda pendiente de una API oficial documentada y accesible para ese flujo. No se utiliza el código para iniciar sesión en otro servicio, ni se consultan buzones o endpoints internos no documentados. Los resultados automáticos siguen siendo transitorios y sin historial de direcciones.
+
+## Tarjetas y guías por fuente
+
+Cada tarjeta conserva su estado y enlace externo visibles. Su nombre abre un `details` nativo con instrucciones propias del servicio, accesible con teclado y sin JavaScript. El antiguo bloque separado de Malwarebytes se integró en su tarjeta; la validación de códigos continúa exclusivamente en su sitio.
+
+Ciberlupa se enlaza con `type=rut`. Es una revisión por RUT independiente de la búsqueda automática por correo. El entorno no pudo acceder a la página de ANCI para verificar su funcionamiento o API: no se simulan resultados ni se agregan campos de RUT o códigos en VIGIA.
+
+Las imágenes se sirven localmente para evitar solicitudes del navegador a los proveedores al mostrar las tarjetas. Recursos:
+
+- XposedOrNot: favicon del [repositorio oficial](https://raw.githubusercontent.com/XposedOrNot/XposedOrNot-Website/master/favicon.ico).
+- Have I Been Pwned y Malwarebytes: marcas SVG de [Simple Icons](https://github.com/simple-icons/simple-icons), distribuidas bajo CC0; las marcas pertenecen a sus titulares.
+- HPI, F-Secure, CronUp y Ciberlupa: siglas provisionales visibles, no logos oficiales. Se requieren sus archivos oficiales para sustituirlas. No se inventaron marcas.

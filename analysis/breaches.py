@@ -55,7 +55,81 @@ SOURCES = (
         "description": "Fuente externa para revisar filtraciones. Consulta en su sitio el alcance del servicio y sus condiciones antes de introducir datos.",
         "mode": "Consulta en el sitio del proveedor",
     },
+    {
+        "id": "ciberlupa",
+        "name": "Ciberlupa · ANCI",
+        "url": "https://ciberlupa.anci.gob.cl/verificar/?type=rut",
+        "description": "Verificación externa por RUT en Ciberlupa de ANCI. Esta revisión es independiente de la consulta de correo de VIGIA.",
+        "mode": "Verificación por RUT en el sitio de ANCI",
+    },
 )
+
+SOURCE_GUIDES = {
+    "xposedornot": {
+        "logo": "analysis/providers/xposedornot.ico",
+        "initials": "XON",
+        "steps": [
+            "Para consultar desde VIGIA, introduce tu correo en el formulario y autoriza la búsqueda.",
+            "También puedes abrir XposedOrNot y realizar la consulta directamente allí.",
+        ],
+        "note": "Solo la consulta autorizada desde VIGIA actualiza el estado de esta tarjeta.",
+    },
+    "hibp": {
+        "logo": "analysis/providers/hibp.svg",
+        "initials": "HIBP",
+        "steps": [
+            "Abre Have I Been Pwned e introduce allí el correo que quieres revisar.",
+            "Consulta los incidentes y las recomendaciones que muestre el servicio.",
+        ],
+        "note": "La consulta web es independiente. Solo una API configurada en VIGIA permite mostrar un resultado automático de esta fuente.",
+    },
+    "hpi": {
+        "initials": "HPI",
+        "steps": [
+            "Abre HPI Identity Leak Checker.",
+            "Sigue las instrucciones de su formulario y el mecanismo de entrega del resultado indicado en su sitio.",
+        ],
+        "note": "VIGIA no recibe el resultado de esta revisión externa.",
+    },
+    "fsecure": {
+        "initials": "F-S",
+        "steps": [
+            "Abre F-Secure Identity Theft Checker.",
+            "Revisa sus condiciones e introduce los datos que solicite para realizar la comprobación.",
+            "Consulta el resultado según las instrucciones del proveedor.",
+        ],
+        "note": "VIGIA no recibe el resultado de esta revisión externa.",
+    },
+    "malwarebytes": {
+        "logo": "analysis/providers/malwarebytes.svg",
+        "initials": "MB",
+        "steps": [
+            "Abre Malwarebytes desde el enlace de esta tarjeta.",
+            "Introduce allí el mismo correo que consultaste en VIGIA.",
+            "Recibe el código de verificación en ese correo y úsalo solo en el sitio de Malwarebytes.",
+            "Consulta el resultado allí después de completar la verificación.",
+        ],
+        "note": "VIGIA no ha solicitado ni validado un código. No accede a tu buzón ni recibe el resultado de esa revisión.",
+    },
+    "cronup": {
+        "initials": "CR",
+        "steps": [
+            "Abre CronUp Leaks.",
+            "Consulta el alcance y las condiciones del servicio antes de introducir datos.",
+            "Sigue las instrucciones de su sitio para realizar la revisión.",
+        ],
+        "note": "Su cobertura y API no se han verificado. VIGIA no recibe un resultado automático de esta fuente.",
+    },
+    "ciberlupa": {
+        "initials": "ANCI",
+        "steps": [
+            "Abre Ciberlupa desde el enlace de esta tarjeta: está seleccionada la verificación por RUT.",
+            "Introduce tu RUT directamente en el sitio de ANCI y sigue sus instrucciones.",
+            "Revisa el resultado y las recomendaciones que entregue Ciberlupa.",
+        ],
+        "note": "VIGIA no solicita, envía ni guarda tu RUT. Esta verificación no equivale a la búsqueda del correo y su resultado no vuelve automáticamente a VIGIA.",
+    },
+}
 
 CHECK_STATES = {
     "found": (
@@ -156,6 +230,7 @@ def source_checks(provider, result=None, *, enabled=True):
         rows.append(
             {
                 **source,
+                **SOURCE_GUIDES[source["id"]],
                 "state": state,
                 "tone": tone,
                 "symbol": symbol,
