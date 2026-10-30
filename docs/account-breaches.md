@@ -8,7 +8,6 @@ La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin s
 | --- | --- | --- |
 | [XposedOrNot](https://xposedornot.com/) | Gratuita | API básica gratuita sin clave; proveedor predeterminado. |
 | [Have I Been Pwned](https://haveibeenpwned.com/) | Búsqueda web gratuita de correos | Alternativa opcional de pago con clave propia. |
-| [HPI Identity Leak Checker](https://sec.hpi.de/ilc/) | Comprobación pública de exposición de un correo | Solo enlace manual. |
 | [F-Secure Identity Theft Checker](https://www.f-secure.com/en/identity-theft-checker) | Comprobador público de exposición | Solo enlace manual; revisar condiciones actuales. |
 | [Malwarebytes Digital Footprint](https://www.malwarebytes.com/digital-footprint) | Herramienta pública de revisión de exposición | Solo enlace manual; revisar condiciones actuales. |
 | [Ciberlupa · Agencia Nacional de Ciberseguridad (ANCI, CHILE)](https://ciberlupa.anci.gob.cl/verificar/?type=rut) | Verificación externa por RUT | Solo enlace manual; no se solicita ni transmite el RUT desde VIGIA. |
@@ -77,7 +76,7 @@ La sección muestra una tarjeta por fuente, con texto, símbolo y color. Solo el
 - Gris: revisión manual o resultado no disponible; nunca equivale a ausencia de filtraciones.
 - Azul: la fuente automática está habilitada, pero todavía no se ha enviado la consulta.
 
-El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 7 con resultado automático**; las otras seis no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su tarjeta.
+El contador incluye solo fuentes con una respuesta final `found` o `no_records`. En la configuración gratuita actual puede mostrar **1 de 6 con resultado automático**; las otras cinco no se presentan como comprobadas. Errores y cuotas no cuentan como resultados completados. HIBP puede ser el proveedor automático si se configura la alternativa de pago, sin reutilizar el resultado de XposedOrNot en su tarjeta.
 
 El usuario confirmó que solo tiene acceso al formulario web de Malwarebytes. Por tanto, su tarjeta indica **Verificación en Malwarebytes** y ofrece un enlace a su sitio y una guía: introducir allí el mismo correo, recibir el código y validarlo allí. Abrir el enlace no envía el correo, solicita códigos ni cambia la fila a «Sin registros».
 
@@ -94,7 +93,7 @@ Las imágenes se sirven localmente para evitar solicitudes del navegador a los p
 - XposedOrNot: favicon del [repositorio oficial](https://raw.githubusercontent.com/XposedOrNot/XposedOrNot-Website/master/favicon.ico).
 - Have I Been Pwned y Malwarebytes: marcas SVG de [Simple Icons](https://github.com/simple-icons/simple-icons), distribuidas bajo CC0; las marcas pertenecen a sus titulares.
 - ANCI: adaptación PNG con transparencia a partir del logo aportado por el usuario; se muestra completo y sin recortes en la tarjeta de Ciberlupa.
-- HPI, F-Secure y CronUp: siglas provisionales visibles, no logos oficiales. Se requieren sus archivos oficiales para sustituirlas.
+- F-Secure y CronUp: siglas provisionales visibles, no logos oficiales. Se requieren sus archivos oficiales para sustituirlas.
 
 ## Correo de la sesión institucional
 

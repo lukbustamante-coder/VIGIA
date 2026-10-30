@@ -132,7 +132,7 @@ def test_new_module_is_available_without_api_key_and_does_not_transmit_on_get(si
     assert response.status_code == 200
     assert 'aria-current="page"' in html and "Filtraciones de cuentas" in html
     assert "La consulta automática no está habilitada" in html
-    for name in ["Have I Been Pwned", "HPI Identity Leak Checker", "F-Secure", "Malwarebytes"]:
+    for name in ["Have I Been Pwned", "F-Secure", "Malwarebytes"]:
         assert name in html
     assert "private@example.org" not in html
     assert 'type="password"' not in html

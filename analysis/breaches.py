@@ -35,13 +35,6 @@ SOURCES = (
         "mode": "Consulta web gratuita; API de pago",
     },
     {
-        "id": "hpi",
-        "name": "HPI Identity Leak Checker",
-        "url": "https://sec.hpi.de/ilc/",
-        "description": "Servicio del Hasso Plattner Institute para comprobar exposición de direcciones de correo. Consulta allí sus condiciones y el mecanismo de entrega del resultado.",
-        "mode": "Consulta en el sitio del proveedor",
-    },
-    {
         "id": "fsecure",
         "name": "F-Secure Identity Theft Checker",
         "url": "https://www.f-secure.com/en/identity-theft-checker",
@@ -82,14 +75,6 @@ SOURCE_GUIDES = {
             "Consulta los incidentes y las recomendaciones que muestre el servicio.",
         ],
         "note": "La consulta web es independiente. Solo una API configurada en VIGIA permite mostrar un resultado automático de esta fuente.",
-    },
-    "hpi": {
-        "initials": "HPI",
-        "steps": [
-            "Abre HPI Identity Leak Checker.",
-            "Sigue las instrucciones de su formulario y el mecanismo de entrega del resultado indicado en su sitio.",
-        ],
-        "note": "VIGIA no recibe el resultado de esta revisión externa.",
     },
     "fsecure": {
         "initials": "F-S",
