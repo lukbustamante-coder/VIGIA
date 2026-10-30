@@ -11,7 +11,7 @@ La pestaña `/analisis/filtraciones/` utiliza **XposedOrNot por defecto**, sin s
 | [HPI Identity Leak Checker](https://sec.hpi.de/ilc/) | Comprobación pública de exposición de un correo | Solo enlace manual. |
 | [F-Secure Identity Theft Checker](https://www.f-secure.com/en/identity-theft-checker) | Comprobador público de exposición | Solo enlace manual; revisar condiciones actuales. |
 | [Malwarebytes Digital Footprint](https://www.malwarebytes.com/digital-footprint) | Herramienta pública de revisión de exposición | Solo enlace manual; revisar condiciones actuales. |
-| [Ciberlupa · ANCI](https://ciberlupa.anci.gob.cl/verificar/?type=rut) | Verificación externa por RUT | Solo enlace manual; no se solicita ni transmite el RUT desde VIGIA. |
+| [Ciberlupa · Agencia Nacional de Ciberseguridad (ANCI, CHILE)](https://ciberlupa.anci.gob.cl/verificar/?type=rut) | Verificación externa por RUT | Solo enlace manual; no se solicita ni transmite el RUT desde VIGIA. |
 | [CronUp Leaks](https://leaks.cronup.com/) | Fuente externa aportada por el usuario; consultar alcance y condiciones en su sitio | Solo enlace manual; API y cobertura no verificadas. |
 
 CronUp Leaks se agregó como **Revisión manual**. El proxy del entorno bloqueó el acceso a su sitio, por lo que no se confirmó disponibilidad, cobertura, gratuidad ni una API oficial. Su enlace no incluye el correo consultado y no cuenta como resultado automático.

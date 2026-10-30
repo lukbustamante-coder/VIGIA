@@ -57,7 +57,7 @@ SOURCES = (
     },
     {
         "id": "ciberlupa",
-        "name": "Ciberlupa · ANCI",
+        "name": "Ciberlupa · Agencia Nacional de Ciberseguridad (ANCI, CHILE)",
         "url": "https://ciberlupa.anci.gob.cl/verificar/?type=rut",
         "description": "Verificación externa por RUT en Ciberlupa de ANCI. Esta revisión es independiente de la consulta de correo de VIGIA.",
         "mode": "Verificación por RUT en el sitio de ANCI",
