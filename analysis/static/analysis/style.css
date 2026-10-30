@@ -1452,14 +1452,24 @@ footer {
   align-items: center;
   gap: 14px;
   min-height: 64px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--institution-blue);
   cursor: pointer;
-  color: var(--text);
+  color: var(--white);
   font-weight: 700;
   list-style: none;
 }
 .breach-source-guide summary::-webkit-details-marker { display: none; }
-.breach-source-guide summary::after { content: '+'; margin-left: auto; color: var(--accent); font-size: 24px; }
-.breach-source-guide[open] summary::after { content: '−'; }
+.breach-source-guide summary::after {
+  content: '';
+  flex-shrink: 0;
+  margin-left: auto;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid var(--white);
+}
+.breach-source-guide[open] summary::after { transform: rotate(180deg); }
 .breach-source-guide summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 .breach-provider-mark {
   display: flex;
@@ -1476,7 +1486,7 @@ footer {
 }
 .breach-provider-mark img { width: 48px; height: 48px; object-fit: contain; }
 .breach-provider-name { min-width: 0; }
-.breach-provider-hint { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; color: var(--institution-blue); }
+.breach-provider-hint { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; color: var(--white); }
 .breach-guide-content { padding-top: 8px; }
 .breach-guide-content ol { padding-left: 22px; }
 .breach-guide-content li { margin-bottom: 10px; }
