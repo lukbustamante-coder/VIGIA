@@ -11,7 +11,7 @@ VT_ALLOW_SAMPLE_UPLOAD=true
 VT_ALLOW_URL_SUBMISSION=true
 ```
 
-No compartas la clave en el repositorio. Las dos últimas opciones permiten enviar adjuntos o URL sin reporte; pueden dejarse en `false` para consultar únicamente reportes existentes. `VT_ALLOW_EMAIL_RESOURCES` está desactivado por defecto. Cada carga requiere marcar «Autorizar el análisis individual de enlaces y adjuntos en VirusTotal». Es una autorización distinta del envío del EML completo y de las consultas a IA o MXToolbox. Cambiar de archivo desmarca las autorizaciones.
+No compartas la clave en el repositorio. Las dos últimas opciones permiten enviar adjuntos o URL sin reporte; pueden dejarse en `false` para consultar únicamente reportes existentes. `VT_ALLOW_EMAIL_RESOURCES` está desactivado por defecto. Cada carga requiere marcar «Autorizar el análisis individual de enlaces y adjuntos en VirusTotal». Es una autorización distinta del envío del EML completo y de las consultas a MXToolbox. La IA utiliza la política institucional y no requiere una casilla por carga. Cambiar de archivo desmarca las autorizaciones.
 
 Actualizar con `bash scripts/setup.sh` aplica la migración `0006`, que conserva los registros existentes con la autorización desactivada. Reinicia web y `scan_worker` cargando el mismo `.env`. Los análisis anteriores no se envían retroactivamente: hay que cargar de nuevo el correo y autorizarlo.
 

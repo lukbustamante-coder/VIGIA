@@ -13,6 +13,7 @@
 <p class="upload-selection" data-upload-selection aria-live="polite" hidden></p>
 <p class="upload-feedback" data-upload-feedback role="status" aria-live="polite"></p>
 <p class="muted" id="file-upload-help">{% if module == 'eml' %}Solo archivos .EML. Máximo 20 MB. Se inspeccionan el mensaje, los enlaces y los adjuntos.{% else %}Máximo 20 MB. Formatos: PDF, ZIP, Word, Excel, PowerPoint, OpenDocument, TXT, CSV, RTF, PNG y JPEG.{% endif %} Un archivo por análisis.</p>
+{% if form.ai_headers_enabled %}<p class="muted">Los encabezados del correo se analizan automáticamente con la IA configurada por la institución. No se envían el cuerpo ni los adjuntos a la IA.</p>{% endif %}
 {% for field in form %}{% if field.name != 'kind' and field.name != 'file' %}<div class="upload-consent">{{ field.errors }}<label>{{ field }}<span>{{ field.label }}</span></label>{% if field.help_text %}<p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}</div>{% endif %}{% endfor %}
 <button>Enviar a analizar →</button>
 </form></section>

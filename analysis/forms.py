@@ -106,11 +106,6 @@ class UploadForm(forms.Form):
         label="Autorizar el envío de este archivo o correo a VirusTotal si no tiene reporte",
         help_text="Se compartirá su contenido completo con VirusTotal y podrá estar disponible para sus socios de seguridad. Marca esta opción solo si tienes autorización para compartirlo y no contiene información confidencial.",
     )
-    ai_header_consent = forms.BooleanField(
-        required=False,
-        label="Autorizar el envío de los encabezados de este correo a la IA configurada",
-        help_text="Puede incluir remitentes, destinatarios, asunto, servidores y direcciones IP. No se envían el cuerpo ni los adjuntos. Marca esta opción solo si tienes autorización para compartir esos datos con el proveedor externo.",
-    )
     mxtoolbox_consent = forms.BooleanField(
         required=False,
         label="Autorizar consultas de configuración del correo en MXToolbox",
@@ -129,8 +124,7 @@ class UploadForm(forms.Form):
         module = self.data.get("kind") if self.is_bound else self.initial.get("kind")
         if not settings.VT_ALLOW_EMAIL_RESOURCES or module != "eml":
             self.fields.pop("email_resources_consent")
-        if not settings.AI_ALLOW_HEADER_UPLOAD or module != "eml":
-            self.fields.pop("ai_header_consent")
+        self.ai_headers_enabled = settings.AI_ALLOW_HEADER_UPLOAD and module == "eml"
         if not settings.MXTOOLBOX_ENABLED or module != "eml":
             self.fields.pop("mxtoolbox_consent")
 
@@ -147,12 +141,6 @@ class UploadForm(forms.Form):
         ):
             raise forms.ValidationError(
                 "Las consultas a MXToolbox no están habilitadas para este módulo."
-            )
-        if self.data.get("ai_header_consent") and (
-            not settings.AI_ALLOW_HEADER_UPLOAD or data.get("kind") != "eml"
-        ):
-            raise forms.ValidationError(
-                "El envío de encabezados a la IA no está habilitado para este módulo."
             )
         if self.data.get("vt_upload_consent") and not settings.VT_ALLOW_SAMPLE_UPLOAD:
             raise forms.ValidationError("El envío de muestras a VirusTotal no está habilitado.")

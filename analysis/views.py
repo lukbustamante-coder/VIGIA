@@ -179,7 +179,10 @@ def upload(request):
                 kind=form.cleaned_data["kind"],
                 filename=Path(file.name).name[:255],
                 vt_upload_consent=bool(form.cleaned_data.get("vt_upload_consent")),
-                ai_header_consent=bool(form.cleaned_data.get("ai_header_consent")),
+                # Institutional policy authorizes selected headers; no per-user checkbox.
+                ai_header_consent=bool(
+                    settings.AI_ALLOW_HEADER_UPLOAD and form.cleaned_data["kind"] == "eml"
+                ),
                 mxtoolbox_consent=bool(form.cleaned_data.get("mxtoolbox_consent")),
                 email_resources_consent=bool(form.cleaned_data.get("email_resources_consent")),
             )
@@ -199,7 +202,7 @@ def upload(request):
                 )
             if item.ai_header_consent:
                 AuditEvent.objects.create(
-                    actor=request.user, action="ai_headers_authorized", submission_id=item.id
+                    actor=request.user, action="ai_headers_policy_applied", submission_id=item.id
                 )
             if item.mxtoolbox_consent:
                 AuditEvent.objects.create(

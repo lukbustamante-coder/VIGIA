@@ -203,15 +203,62 @@ def test_public_email_report_is_separate_from_admin_evidence_and_escapes_model_h
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "enabled,module,valid", [(False, "eml", False), (True, "file", False), (True, "eml", True)]
+    "enabled,module,expected", [(False, "eml", False), (True, "file", False), (True, "eml", True)]
 )
-def test_forged_header_consent_is_rejected(settings, enabled, module, valid):
+def test_ai_checkbox_is_absent_and_policy_is_independent_of_legacy_input(
+    settings, enabled, module, expected
+):
     settings.AI_ALLOW_HEADER_UPLOAD = enabled
     file = SimpleUploadedFile(
         "mail.eml" if module == "eml" else "note.txt", EMAIL if module == "eml" else b"Note"
     )
     form = UploadForm({"kind": module, "ai_header_consent": "on"}, {"file": file})
-    assert form.is_valid() is valid
+    assert form.is_valid()
+    assert "ai_header_consent" not in form.fields
+    assert form.ai_headers_enabled is expected
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "enabled,module,expected", [(False, "eml", False), (True, "file", False), (True, "eml", True)]
+)
+def test_upload_derives_ai_permission_from_institutional_policy(
+    client, settings, tmp_path, enabled, module, expected
+):
+    settings.PRIVATE_STORAGE = tmp_path
+    settings.AI_ALLOW_HEADER_UPLOAD = enabled
+    user = get_user_model().objects.create_user(username="policy-owner")
+    client.force_login(user)
+    result = client.post(
+        "/upload/",
+        {
+            "kind": module,
+            "ai_header_consent": "on",  # Old or forged fields cannot override policy.
+            "file": SimpleUploadedFile(
+                "mail.eml" if module == "eml" else "note.txt",
+                EMAIL if module == "eml" else b"Note",
+            ),
+        },
+    )
+    assert result.status_code == 302
+    item = Submission.objects.get()
+    assert item.ai_header_consent is expected
+    assert not item.vt_upload_consent and not item.mxtoolbox_consent
+    assert AuditEvent.objects.filter(action="ai_headers_policy_applied").exists() is expected
+    assert not AuditEvent.objects.filter(action="ai_headers_authorized").exists()
+
+
+@pytest.mark.django_db
+def test_email_page_removes_ai_checkbox_but_keeps_other_authorizations(client, settings):
+    settings.AI_ALLOW_HEADER_UPLOAD = True
+    settings.VT_ALLOW_SAMPLE_UPLOAD = True
+    settings.MXTOOLBOX_ENABLED = True
+    client.force_login(get_user_model().objects.create_user(username="policy-reader"))
+    html = client.get("/analisis/correos/").content.decode()
+    assert 'name="ai_header_consent"' not in html
+    assert 'name="vt_upload_consent"' in html
+    assert 'name="mxtoolbox_consent"' in html
+    assert "automáticamente con la IA configurada por la institución" in html
 
 
 def test_header_limits_and_missing_fields_are_explicit():
@@ -280,7 +327,7 @@ def test_actual_worker_processes_email_without_ai_key(client, settings, monkeypa
 
 
 @pytest.mark.django_db
-def test_worker_records_consent_and_attempt_and_forwards_policy(
+def test_worker_records_institutional_policy_and_attempt_without_user_checkbox(
     client, settings, monkeypatch, tmp_path
 ):
     settings.PRIVATE_STORAGE = tmp_path / "uploads"
@@ -290,12 +337,12 @@ def test_worker_records_consent_and_attempt_and_forwards_policy(
     client.force_login(user)
     result = client.post(
         "/upload/",
-        {"kind": "eml", "ai_header_consent": "on", "file": SimpleUploadedFile("mail.eml", EMAIL)},
+        {"kind": "eml", "file": SimpleUploadedFile("mail.eml", EMAIL)},
     )
     assert result.status_code == 302
     item = Submission.objects.get()
     assert item.ai_header_consent
-    assert AuditEvent.objects.filter(action="ai_headers_authorized").exists()
+    assert AuditEvent.objects.filter(action="ai_headers_policy_applied").exists()
     scanned = {
         "verdict": "inconclusive",
         "details": {"providers": {"ai": {"header_upload_attempted": True}}},
