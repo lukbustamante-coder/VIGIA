@@ -7,6 +7,8 @@ from authlib.integrations.base_client.errors import MismatchingStateError
 from authlib.integrations.django_client import OAuth
 from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import DatabaseError
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
@@ -16,6 +18,21 @@ from django.views.decorators.http import require_GET, require_POST
 from .models import AuditEvent
 
 logger = logging.getLogger(__name__)
+
+
+def verified_account_email(claims):
+    """Accept only the verified email claim from the validated institutional ID token."""
+    email = claims.get("email")
+    if claims.get("email_verified") is not True or not isinstance(email, str):
+        return ""
+    email = email.strip()
+    if len(email) > 254:
+        return ""
+    try:
+        validate_email(email)
+    except ValidationError:
+        return ""
+    return email
 
 
 def profile_text(value, limit=150):
@@ -160,6 +177,7 @@ def callback(request):
         login(request, user)
         request.session["roles"] = roles
         request.session["oidc_display_name"] = display_name
+        request.session["oidc_email"] = verified_account_email(claims)
         request.session.set_expiry(min(1800, remaining))
         request.session.pop("force_reauthentication", None)
         request.session.pop("oidc_logout_state", None)

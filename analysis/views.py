@@ -6,6 +6,8 @@ from urllib.parse import urlsplit
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -54,8 +56,16 @@ def breach_lookup(request):
     enabled = provider == "xposedornot" or (
         provider == "hibp" and settings.HIBP_ENABLED and bool(settings.HIBP_API_KEY)
     )
+    account_email = request.session.get("oidc_email", "")
+    try:
+        if not isinstance(account_email, str) or len(account_email) > 254:
+            raise ValidationError("Invalid session email")
+        validate_email(account_email)
+    except ValidationError:
+        account_email = ""
     form = BreachLookupForm(
         request.POST if request.method == "POST" else None,
+        account_email=account_email,
         provider_name=source["name"] if source else "el proveedor configurado",
     )
     result = None
@@ -95,9 +105,9 @@ def breach_lookup(request):
                 status = 429
             else:
                 raw_result = (
-                    lookup_xposedornot(form.cleaned_data["email"])
+                    lookup_xposedornot(account_email)
                     if provider == "xposedornot"
-                    else lookup_account(form.cleaned_data["email"], settings.HIBP_API_KEY)
+                    else lookup_account(account_email, settings.HIBP_API_KEY)
                 )
                 result = present_breach_result(raw_result, provider=provider)
     return render(
@@ -108,10 +118,13 @@ def breach_lookup(request):
             "admin": is_admin(request),
             "form": form,
             "lookup_enabled": enabled,
+            "lookup_identity_available": bool(account_email),
             "lookup_source": source,
             "is_free_lookup": provider == "xposedornot",
             "lookup_result": result,
-            "source_checks": source_checks(provider, raw_result, enabled=enabled),
+            "source_checks": source_checks(
+                provider, raw_result, enabled=enabled and bool(account_email)
+            ),
         },
         status=status,
     )

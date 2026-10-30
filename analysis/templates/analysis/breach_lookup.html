@@ -1,16 +1,19 @@
 {% extends 'analysis/base.html' %}
 {% load static %}
 {% block content %}
-<div class="module-heading"><p class="eyebrow">REVISA LA EXPOSICIÓN DE TU CUENTA</p><h1>Filtraciones de cuentas</h1><p class="intro">Consulta si un correo aparece en filtraciones de datos conocidas. No necesitas ingresar tu contraseña.</p></div>
+<div class="module-heading"><p class="eyebrow">REVISA LA EXPOSICIÓN DE TU CUENTA</p><h1>Filtraciones de cuentas</h1><p class="intro">Consulta si el correo de tu sesión institucional aparece en filtraciones de datos conocidas. No necesitas ingresar tu contraseña.</p></div>
 <section class="card">
-    <h2>Consultar un correo</h2>
-    {% if lookup_enabled %}
+    <h2>Consultar mi correo</h2>
+    {% if lookup_enabled and lookup_identity_available %}
     <form method="post" action="{% url 'breach_lookup' %}" class="breach-form">{% csrf_token %}
         {{ form.non_field_errors }}
         <p>{{ form.email.label_tag }}{{ form.email.errors }}{{ form.email }}</p>
+        <p class="helptext">Este correo proviene de tu sesión SSO. Solo puedes consultar tu propia cuenta.</p>
         <div class="upload-consent">{{ form.consent.errors }}<label>{{ form.consent }}<span>{{ form.consent.label }}</span></label><p class="helptext">{{ form.consent.help_text }}</p></div>
         <button>Consultar filtraciones →</button>
     </form>
+    {% elif lookup_enabled %}
+    <p role="status">No recibimos un correo verificado desde tu sesión SSO. Cierra sesión y vuelve a ingresar. Si el problema continúa, contacta a <a href="mailto:soporte.sisei@utem.cl">soporte.sisei@utem.cl</a> para revisar los datos de tu cuenta institucional.</p>
     {% else %}
     <p>La consulta automática no está habilitada en esta instalación. Puedes consultar tu correo directamente en las fuentes que aparecen más abajo.</p>
     {% if admin %}<p class="muted">Puedes habilitar XposedOrNot para consultas básicas gratuitas sin clave. Have I Been Pwned ofrece una integración alternativa con suscripción.</p>{% endif %}
